@@ -6,7 +6,8 @@ An event-driven platform for book discovery, offering hybrid search (semantic + 
 
 * **Hybrid Book Search:** Combines semantic (AI-powered) and keyword search to deliver accurate and context-aware results.
 * **Multilingual Semantic Search:** Allows users to query in Portuguese or English while searching over book metadata and descriptions.
-* **Personalized Recommendations:** Dynamically suggests books based on user preferences and reading behavior using an event-driven architecture.
+* **Personalized Recommendations:** Dynamically suggests books based on user preferences and reading behavior using an event-driven architecture (RabbitMQ).
+* **Favorites:** Logged-in users can favorite books, which both saves them and strengthens their personalized recommendations.
 * **Lightweight Local Seeding:** Seeded with a curated sample of ~3,000 books from Kaggle for fast setup and instant vector embedding generation.
 * **Interactive Discovery:** Explore book details, view cover images, filter by genres/authors, and manage user accounts.
 
@@ -16,7 +17,7 @@ This project is built as a **monorepo** containing both the frontend and backend
 
 | Directory | Description | Tech Stack |
 | :--- | :--- | :--- |
-| **[`apps/backend`](./apps/backend)** | Core REST API for search and recommendation processing | Java, Spring Boot, PostgreSQL |
+| **[`apps/backend`](./apps/backend)** | Core REST API for search and recommendation processing | Java 21, Spring Boot, PostgreSQL (pgvector), RabbitMQ |
 | **[`apps/frontend`](./apps/frontend)** | Web user interface for book discovery | React, TypeScript |
 | **[`docs`](./docs)** | Project documentation (Architecture, API specs, User Stories) | Markdown |
 
