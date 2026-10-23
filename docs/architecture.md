@@ -6,8 +6,6 @@ A book search and recommendation platform that leverages hybrid search (semantic
 
 <img src="./imgs/architecture.png" alt="Architecture Diagram" width="600"/>
 
-> **Note:** The PNG above is the original high-level sketch. The authoritative, up-to-date architecture is described by the Mermaid diagram below (versionable in Git). The PNG should be regenerated to reflect the RabbitMQ broker and named backend components when convenient.
-
 ```mermaid
 flowchart LR
     User(("User"))
@@ -109,8 +107,6 @@ User actions publish events to **RabbitMQ**. A background consumer (**Recommenda
 | `book.unfavorited` | Logged-in user removes a favorite | Yes |
 
 The Recommendation Worker aggregates the embeddings of the books a user has favorited/viewed into a **user profile embedding** (e.g. a weighted average), which is then used to retrieve similar books via `pgvector`.
-
-> **Deferred decision:** the **relative weight / score each event type contributes** to the recommendation (e.g. `book.favorited` should weigh more than `book.viewed`/`book.searched`) is intentionally left open and will be defined during implementation.
 
 ## Data Source & Pipeline
 

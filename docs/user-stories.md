@@ -18,5 +18,3 @@
 * **US09:** As a logged-in user, I want to favorite a book, so that I can save it and improve my personalized recommendations.
 * **US10:** As a logged-in user, I want to remove a book from my favorites, so that I can keep my saved list and recommendations relevant.
 * **US11:** As a logged-in user, I want to view my list of favorite books, so that I can revisit the titles I saved.
-
-> **Note:** Favoriting/unfavoriting a book emits interaction events (`book.favorited` / `book.unfavorited`) consumed by the Recommendation Worker. The relative weight of each interaction type in the recommendation score is a deferred decision to be defined during implementation.
