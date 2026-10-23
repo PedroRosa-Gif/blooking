@@ -17,7 +17,7 @@ A book search and recommendation platform that leverages hybrid search (semantic
 
 # Core Architectural Concepts & Data Flow
 
-### 1. Hybrid Search Engine (Retriever)
+### Hybrid Search Engine (Retriever)
 When a user submits a prompt via the Frontend:
 1. **Embedding Generation:** The Backend converts the input query into a vector embedding (`Embedded prompt`).
 2. **Parallel Retrieval:**
@@ -25,10 +25,27 @@ When a user submits a prompt via the Frontend:
    * **Keyword Search:** Queries standard text using PostgreSQL Full-Text Search (`tsvector`).
 3. **Ranking & Merging:** The Retriever component combines and re-ranks results from both strategies before sending the `Retrieved Documents` back to the Frontend.
 
-### 2. Event-Driven Recommendations
+### Event-Driven Recommendations
 * User actions (e.g., viewing, searching, or saving books) publish events to the Event Broker.
 * A background consumer processes these preference events asynchronously to update user profile embeddings and generate personalized recommendations without blocking main search requests.
 
+## Data Source & Pipeline
+
+* **Dataset:** [Best Books Ever Dataset (Kaggle)](https://www.kaggle.com/datasets/pooriamst/best-books-ever-dataset/data)
+* **Dataset Scope:** **Sampled to ~3,000 top records** (out of 52,000) for fast local development, low memory footprint, and quick vector embedding generation.
+* **Key Fields Utilized:**
+  * `title`, `author`, `genres` — Used for Full-Text Search and categorical filtering.
+  * `description` — Primary textual source for generating dense vector embeddings.
+  * `coverImg` — Used by the frontend interface for book cards and details.
+  * `rating`, `numRatings` — Used as factors in the candidate re-ranking step.
+
+### Multilingual Embedding Strategy
+To support Portuguese queries over an English dataset without manual translation, the backend relies on a multilingual embedding model (e.g., `bge-m3` via Ollama/Spring AI). 
+
+When indexing, a structured context string is created per book:
+```text
+Title: {title} | Author: {author} | Genres: {genres} | Description: {description}
+```
 # Infrastructure & Deployment
 
 * **Environments:** Development (Docker Compose) / Production (AWS ECS / Kubernetes).

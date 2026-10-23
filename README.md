@@ -5,8 +5,10 @@ An event-driven platform for book discovery, offering hybrid search (semantic + 
 ## Key Features
 
 * **Hybrid Book Search:** Combines semantic (AI-powered) and keyword search to deliver accurate and context-aware results.
-* **Personalized Recommendations:** Dynamically suggests new books based on user preferences and reading behavior.
-* **Interactive Discovery:** Explore details, filter through collections, and manage user accounts seamlessly.
+* **Multilingual Semantic Search:** Allows users to query in Portuguese or English while searching over book metadata and descriptions.
+* **Personalized Recommendations:** Dynamically suggests books based on user preferences and reading behavior using an event-driven architecture.
+* **Lightweight Local Seeding:** Seeded with a curated sample of ~3,000 books from Kaggle for fast setup and instant vector embedding generation.
+* **Interactive Discovery:** Explore book details, view cover images, filter by genres/authors, and manage user accounts.
 
 ## Project Structure
 
