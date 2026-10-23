@@ -1,0 +1,77 @@
+spring:
+  application:
+    name: blooking-backend
+
+  # --- Datasource (PostgreSQL + pgvector) ---
+  datasource:
+    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:blooking}
+    username: ${DB_USER:blooking}
+    password: ${DB_PASSWORD:blooking}
+    driver-class-name: org.postgresql.Driver
+
+  # --- JPA / Hibernate ---
+  # Schema is owned by Flyway, NOT Hibernate. ddl-auto stays "validate" so the
+  # app fails fast if the entities drift from the migrated schema.
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+    properties:
+      hibernate:
+        format_sql: true
+    show-sql: false
+
+  # --- Flyway (database migrations) ---
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+    baseline-on-migrate: true
+    baseline-version: 0
+
+  # --- RabbitMQ (Spring AMQP) ---
+  rabbitmq:
+    host: ${RABBITMQ_HOST:localhost}
+    port: ${RABBITMQ_PORT:5672}
+    username: ${RABBITMQ_USER:blooking}
+    password: ${RABBITMQ_PASSWORD:blooking}
+
+  # --- Spring AI: Ollama embeddings ---
+  ai:
+    ollama:
+      base-url: ${OLLAMA_BASE_URL:http://localhost:11434}
+      # Do not let the app block on a cold model download at startup;
+      # the docker-compose "ollama-init" service pre-pulls the model.
+      init:
+        pull-model-strategy: never
+      embedding:
+        options:
+          model: ${EMBEDDING_MODEL:bge-m3}
+
+# --- Server ---
+server:
+  port: ${SERVER_PORT:8080}
+
+# --- Actuator (operational endpoints) ---
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+  endpoint:
+    health:
+      show-details: when-authorized
+      probes:
+        enabled: true
+  info:
+    env:
+      enabled: true
+
+info:
+  app:
+    name: blooking-backend
+    description: Core REST API for book search and recommendation
+
+logging:
+  level:
+    root: INFO
+    dev.blooking: DEBUG

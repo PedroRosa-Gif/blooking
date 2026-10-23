@@ -1,0 +1,107 @@
+# Blooking — local development stack
+#
+# Services:
+#   - postgres : PostgreSQL 16 with the pgvector extension (relational + FTS + vector search)
+#   - rabbitmq : RabbitMQ 3 with the management UI (interaction/recommendation events)
+#   - ollama   : Ollama embedding runtime serving the multilingual bge-m3 model
+#   - ollama-init : one-shot helper that pulls the embedding model on first startup
+#
+# Usage:
+#   cp .env.example .env     # then adjust values if needed
+#   docker compose up -d
+#
+# To run against a NATIVE Ollama install on the host instead of the container,
+# skip the ollama service (`docker compose up -d postgres rabbitmq`) and set
+# OLLAMA_BASE_URL to your host, e.g. http://host.docker.internal:11434
+
+name: blooking
+
+services:
+  postgres:
+    image: pgvector/pgvector:pg16
+    container_name: blooking-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-blooking}
+      POSTGRES_USER: ${POSTGRES_USER:-blooking}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-blooking}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-blooking} -d ${POSTGRES_DB:-blooking}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    networks:
+      - blooking-net
+
+  rabbitmq:
+    image: rabbitmq:3-management
+    container_name: blooking-rabbitmq
+    restart: unless-stopped
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER:-blooking}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD:-blooking}
+    ports:
+      - "${RABBITMQ_PORT:-5672}:5672"       # AMQP protocol
+      - "${RABBITMQ_MGMT_PORT:-15672}:15672" # Management UI (http://localhost:15672)
+    volumes:
+      - rabbitmq-data:/var/lib/rabbitmq
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 15s
+      timeout: 10s
+      retries: 5
+      start_period: 20s
+    networks:
+      - blooking-net
+
+  ollama:
+    image: ollama/ollama:latest
+    container_name: blooking-ollama
+    restart: unless-stopped
+    ports:
+      - "${OLLAMA_PORT:-11434}:11434"
+    volumes:
+      - ollama-data:/root/.ollama
+    healthcheck:
+      test: ["CMD", "ollama", "--version"]
+      interval: 15s
+      timeout: 10s
+      retries: 5
+      start_period: 20s
+    networks:
+      - blooking-net
+
+  # One-shot container: waits for Ollama, then pulls the embedding model so the
+  # first real request doesn't block on a cold download. Exits when done.
+  ollama-init:
+    image: ollama/ollama:latest
+    container_name: blooking-ollama-init
+    depends_on:
+      ollama:
+        condition: service_healthy
+    environment:
+      OLLAMA_HOST: http://ollama:11434
+      EMBEDDING_MODEL: ${EMBEDDING_MODEL:-bge-m3}
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        echo "Pulling embedding model: $${EMBEDDING_MODEL} ...";
+        ollama pull $${EMBEDDING_MODEL};
+        echo "Done.";
+    restart: "no"
+    networks:
+      - blooking-net
+
+volumes:
+  postgres-data:
+  rabbitmq-data:
+  ollama-data:
+
+networks:
+  blooking-net:
+    driver: bridge
