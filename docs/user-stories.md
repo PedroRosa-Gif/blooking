@@ -13,3 +13,10 @@
 * **US06:** As a user, I want to create an account, so that I can gain access to personalized website features.
 * **US07:** As a user, I want to log into my account, so that I can access my profile and saved preferences.
 * **US08:** As a user, I want to log out of my account, so that I can safely leave the session.
+
+## 4. Favorites (Logged-in only)
+* **US09:** As a logged-in user, I want to favorite a book, so that I can save it and improve my personalized recommendations.
+* **US10:** As a logged-in user, I want to remove a book from my favorites, so that I can keep my saved list and recommendations relevant.
+* **US11:** As a logged-in user, I want to view my list of favorite books, so that I can revisit the titles I saved.
+
+> **Note:** Favoriting/unfavoriting a book emits interaction events (`book.favorited` / `book.unfavorited`) consumed by the Recommendation Worker. The relative weight of each interaction type in the recommendation score is a deferred decision to be defined during implementation.
