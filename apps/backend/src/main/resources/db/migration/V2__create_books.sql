@@ -52,13 +52,17 @@ CREATE TABLE books (
     -- NOTE: the exact field weighting is a deferred tuning decision.
     --
     -- IMPORTANT: a STORED generated column requires an IMMUTABLE expression.
-    -- The 2-arg to_tsvector(regconfig, text) is only STABLE, so we pin the
-    -- configuration with an explicit ::regconfig cast, which Postgres treats
-    -- as IMMUTABLE.
+    -- Two gotchas handled here:
+    --   1) The 2-arg to_tsvector(regconfig, text) is only STABLE, so we pin the
+    --      configuration with an explicit ::regconfig cast (IMMUTABLE).
+    --   2) array_to_string() is NOT immutable, so we cannot use it for `genres`.
+    --      Instead we use array_to_tsvector(genres), which IS immutable. It
+    --      treats each genre as a single lexeme (a category token), which is
+    --      exactly what we want for genre matching.
     search_vector tsvector GENERATED ALWAYS AS (
         setweight(to_tsvector('simple'::regconfig, coalesce(title, '')), 'A') ||
         setweight(to_tsvector('simple'::regconfig, coalesce(author, '')), 'B') ||
-        setweight(to_tsvector('simple'::regconfig, coalesce(array_to_string(genres, ' '), '')), 'C') ||
+        setweight(array_to_tsvector(genres), 'C') ||
         setweight(to_tsvector('simple'::regconfig, coalesce(description, '')), 'D')
     ) STORED
 );
