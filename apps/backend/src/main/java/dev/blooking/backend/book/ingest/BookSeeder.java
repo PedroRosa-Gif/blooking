@@ -16,6 +16,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
@@ -38,6 +39,7 @@ import dev.blooking.backend.book.BookRepository;
  * a malformed value becomes {@code null}/empty rather than aborting the import.
  */
 @Component
+@ConditionalOnProperty(name = "blooking.seed.enabled", havingValue = "true", matchIfMissing = true)
 public class BookSeeder implements ApplicationRunner {
 
     private static final Logger log = LoggerFactory.getLogger(BookSeeder.class);

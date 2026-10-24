@@ -85,6 +85,25 @@ On first startup, `BookSeeder` loads `src/main/resources/data/books_sample.csv`
 already has rows, seeding is skipped. To re-seed from scratch, drop the data
 (e.g. `docker compose down -v` to reset the Postgres volume) and restart.
 
+## Tests
+
+Two layers:
+
+- **Unit / web tests** (`*Test`) — fast, no external services. Run with:
+  ```bash
+  ./mvnw test
+  ```
+- **Integration tests** (`*IT`) — run against a real PostgreSQL (+pgvector)
+  started by **Testcontainers**, so they require a **running Docker daemon**.
+  Run (includes the unit tests too) with:
+  ```bash
+  ./mvnw verify
+  ```
+
+The integration DB is ephemeral and isolated from your dev database; it does
+not touch the `docker-compose` Postgres. The first run downloads the pgvector
+image (~150 MB) once.
+
 ## Database migrations (Flyway)
 
 Schema changes are managed by Flyway. Migration scripts live in
