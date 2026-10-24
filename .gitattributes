@@ -1,0 +1,5 @@
+# Keep shell scripts with LF endings regardless of OS so mvnw stays executable.
+*.sh    text eol=lf
+mvnw    text eol=lf
+*.cmd   text eol=crlf
+*.bat   text eol=crlf
