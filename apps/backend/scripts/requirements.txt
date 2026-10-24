@@ -1,0 +1,4 @@
+# Optional but recommended: repairs mojibake (e.g. "â€”" -> "—") in the dataset.
+# The script runs fine without it (falls back to a small built-in cleanup),
+# but installing ftfy produces noticeably cleaner text.
+ftfy>=6.0
