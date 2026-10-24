@@ -53,16 +53,37 @@ localhost defaults are baked in, matching `docker-compose.yml`):
 | Method | Path | Description |
 | :--- | :--- | :--- |
 | `GET` | `/api/health` | Simple application liveness check |
+| `GET` | `/api/books` | List books (paginated); filters: `q`, `author`, `genre` |
+| `GET` | `/api/books/{id}` | Book detail |
 | `GET` | `/actuator/health` | Deep health (DB, RabbitMQ, disk, ...) |
 | `GET` | `/actuator/info` | Build/app info |
 | `GET` | `/actuator/metrics` | Metrics |
 
-Example:
+Examples:
 
 ```bash
 curl http://localhost:8080/api/health
 # {"status":"UP","service":"blooking-backend","timestamp":"..."}
+
+# First page, 20 books, sorted by num_ratings desc (default)
+curl "http://localhost:8080/api/books"
+
+# Filter by genre + free-text, page 2 of 10
+curl "http://localhost:8080/api/books?genre=Fantasy&q=harry&page=1&size=10"
+
+# Sort by rating descending
+curl "http://localhost:8080/api/books?sort=rating,desc"
+
+# Book detail
+curl "http://localhost:8080/api/books/1"
 ```
+
+### Catalog seeding
+
+On first startup, `BookSeeder` loads `src/main/resources/data/books_sample.csv`
+(~3,000 books) into the `books` table. It is **idempotent**: if the table
+already has rows, seeding is skipped. To re-seed from scratch, drop the data
+(e.g. `docker compose down -v` to reset the Postgres volume) and restart.
 
 ## Database migrations (Flyway)
 
