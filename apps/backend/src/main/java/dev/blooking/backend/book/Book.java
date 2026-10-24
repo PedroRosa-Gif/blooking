@@ -91,7 +91,10 @@ public class Book {
     @Column(name = "updated_at", nullable = false)
     private OffsetDateTime updatedAt;
 
-    protected Book() {
+    // Public (not protected) because the seeder in a sibling package instantiates
+    // Book directly via `new Book()`. JPA only requires a non-private no-arg ctor.
+    // (Revisit: could stay protected if the seeder used a factory/builder instead.)
+    public Book() {
         // Required by JPA.
     }
 

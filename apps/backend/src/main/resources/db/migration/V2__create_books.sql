@@ -50,11 +50,16 @@ CREATE TABLE books (
     -- purpose: the dataset mixes languages (EN/PT), and 'simple' avoids
     -- language-specific stemming that would misbehave across languages.
     -- NOTE: the exact field weighting is a deferred tuning decision.
+    --
+    -- IMPORTANT: a STORED generated column requires an IMMUTABLE expression.
+    -- The 2-arg to_tsvector(regconfig, text) is only STABLE, so we pin the
+    -- configuration with an explicit ::regconfig cast, which Postgres treats
+    -- as IMMUTABLE.
     search_vector tsvector GENERATED ALWAYS AS (
-        setweight(to_tsvector('simple', coalesce(title, '')), 'A') ||
-        setweight(to_tsvector('simple', coalesce(author, '')), 'B') ||
-        setweight(to_tsvector('simple', coalesce(array_to_string(genres, ' '), '')), 'C') ||
-        setweight(to_tsvector('simple', coalesce(description, '')), 'D')
+        setweight(to_tsvector('simple'::regconfig, coalesce(title, '')), 'A') ||
+        setweight(to_tsvector('simple'::regconfig, coalesce(author, '')), 'B') ||
+        setweight(to_tsvector('simple'::regconfig, coalesce(array_to_string(genres, ' '), '')), 'C') ||
+        setweight(to_tsvector('simple'::regconfig, coalesce(description, '')), 'D')
     ) STORED
 );
 

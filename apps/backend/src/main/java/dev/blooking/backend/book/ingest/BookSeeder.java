@@ -71,10 +71,11 @@ public class BookSeeder implements ApplicationRunner {
         log.info("Seeding book catalog from '{}' ...", CSV_PATH);
         int imported = 0;
 
+        // NOTE: Commons CSV 1.12 uses Builder.build(); .get() only exists in 1.13+.
         CSVFormat format = CSVFormat.DEFAULT.builder()
                 .setHeader()
                 .setSkipHeaderRecord(true)
-                .get();
+                .build();
 
         try (InputStream in = resource.getInputStream();
              BufferedReader reader = new BufferedReader(new InputStreamReader(in, StandardCharsets.UTF_8));
