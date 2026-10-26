@@ -55,6 +55,7 @@ localhost defaults are baked in, matching `docker-compose.yml`):
 | `GET` | `/api/health` | Simple application liveness check |
 | `GET` | `/api/books` | List books (paginated); filters: `q`, `author`, `genre` |
 | `GET` | `/api/books/{id}` | Book detail |
+| `GET` | `/api/search?q=&limit=` | Hybrid search (semantic + keyword, RRF-fused) |
 | `GET` | `/actuator/health` | Deep health (DB, RabbitMQ, disk, ...) |
 | `GET` | `/actuator/info` | Build/app info |
 | `GET` | `/actuator/metrics` | Metrics |
@@ -78,12 +79,34 @@ curl "http://localhost:8080/api/books?sort=rating,desc"
 curl "http://localhost:8080/api/books/1"
 ```
 
-### Catalog seeding
+### Catalog seeding & embeddings
 
 On first startup, `BookSeeder` loads `src/main/resources/data/books_sample.csv`
-(~3,000 books) into the `books` table. It is **idempotent**: if the table
-already has rows, seeding is skipped. To re-seed from scratch, drop the data
-(e.g. `docker compose down -v` to reset the Postgres volume) and restart.
+(~3,000 books) into the `books` table, then generates a **semantic embedding**
+for each book by calling Ollama (`bge-m3`).
+
+Both steps are **idempotent**:
+- rows are imported only when the table is empty;
+- embeddings are generated only for books that don't have one yet, so a restart
+  backfills any missing (e.g. if a previous run was interrupted or Ollama was
+  down).
+
+> ⚠️ The first run generates ~3,000 embeddings and **can take several minutes**
+> (one Ollama call per book). It runs once; later startups skip already-embedded
+> books. To re-seed from scratch, reset the volume: `docker compose down -v`.
+
+Disable embedding generation (e.g. for a fast dev startup or tests) with:
+
+```properties
+blooking.seed.embeddings.enabled=false
+```
+
+Examples:
+
+```bash
+curl "http://localhost:8080/api/search?q=young wizard at a magic school&limit=5"
+curl "http://localhost:8080/api/search?q=distopia jovens&limit=5"   # Portuguese query
+```
 
 ## Tests
 
