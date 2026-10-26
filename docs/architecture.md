@@ -109,7 +109,15 @@ User actions publish events to **RabbitMQ**. A background consumer (**Recommenda
 | `book.favorited` | Logged-in user favorites a book | Yes |
 | `book.unfavorited` | Logged-in user removes a favorite | Yes |
 
-The Recommendation Worker aggregates the embeddings of the books a user has favorited/viewed into a **user profile embedding** (e.g. a weighted average), which is then used to retrieve similar books via `pgvector`.
+**Messaging topology (implemented):**
+
+* **Topic exchange** `blooking.events`; producers publish with the event's routing key (`book.viewed`, etc.).
+* A durable queue **`book.events`** is bound with the pattern `book.*` and consumed by the interaction consumer.
+* Messages are **persistent JSON** (survive a broker restart). Delivery is **at-least-once**, so the consumer is **idempotent**: each event carries a UUID `eventId` and is recorded at most once (`interactions.event_id` is `UNIQUE`).
+* A **Dead Letter Queue** (`book.events.dlq`, via a dead-letter exchange) captures messages that keep failing, instead of losing them or retrying forever.
+* **Publishing is best-effort** this phase: if the broker is down, the user action still succeeds and the event is dropped (logged). A **transactional outbox** is noted as a future hardening step for guaranteed delivery.
+
+The consumer persists every event to the append-only **`interactions`** table (audit log + recommendation source). The Recommendation Worker (next phase) will aggregate the embeddings of the books a user has favorited/viewed into a **user profile embedding**, used to retrieve similar books via `pgvector`.
 
 ## Data Source & Pipeline
 

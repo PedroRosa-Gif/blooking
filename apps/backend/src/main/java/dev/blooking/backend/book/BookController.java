@@ -12,6 +12,10 @@ import org.springframework.web.bind.annotation.RestController;
 
 import dev.blooking.backend.book.dto.BookDetailResponse;
 import dev.blooking.backend.book.dto.BookSummaryResponse;
+import dev.blooking.backend.common.security.CurrentUser;
+import dev.blooking.backend.events.EventPublisher;
+import dev.blooking.backend.events.InteractionEvent;
+import dev.blooking.backend.events.InteractionEventType;
 
 /**
  * Read-only catalog endpoints for book discovery.
@@ -30,9 +34,11 @@ public class BookController {
     private static final int MAX_PAGE_SIZE = 100;
 
     private final BookService bookService;
+    private final EventPublisher eventPublisher;
 
-    public BookController(BookService bookService) {
+    public BookController(BookService bookService, EventPublisher eventPublisher) {
         this.bookService = bookService;
+        this.eventPublisher = eventPublisher;
     }
 
     @GetMapping
@@ -46,7 +52,13 @@ public class BookController {
 
     @GetMapping("/{id}")
     public BookDetailResponse getById(@PathVariable Long id) {
-        return bookService.getById(id);
+        BookDetailResponse book = bookService.getById(id);
+        // US04: opening a book detail is a "viewed" interaction. Emitted after a
+        // successful lookup (a 404 does not produce an event). Attributed to the
+        // user if logged in, anonymous otherwise.
+        eventPublisher.publish(
+                InteractionEvent.of(InteractionEventType.VIEWED, CurrentUser.idOrNull(), id));
+        return book;
     }
 
     private static Pageable capPageSize(Pageable pageable) {

@@ -41,6 +41,9 @@ class BookControllerTest {
     @MockitoBean
     private BookService bookService;
 
+    @MockitoBean
+    private dev.blooking.backend.events.EventPublisher eventPublisher;
+
     private BookSummaryResponse sampleSummary() {
         return new BookSummaryResponse(1L, "The Hunger Games", "Suzanne Collins",
                 "The Hunger Games #1", List.of("Fiction", "Dystopia"),

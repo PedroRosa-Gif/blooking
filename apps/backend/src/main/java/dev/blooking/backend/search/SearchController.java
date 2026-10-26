@@ -8,6 +8,11 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import dev.blooking.backend.book.dto.BookSummaryResponse;
+import dev.blooking.backend.common.security.CurrentUser;
+import dev.blooking.backend.events.EventPublisher;
+import dev.blooking.backend.events.InteractionEvent;
+import dev.blooking.backend.events.InteractionEventType;
+import org.springframework.util.StringUtils;
 
 /**
  * Hybrid search endpoint (US01): combines semantic (vector) and keyword
@@ -17,13 +22,14 @@ import dev.blooking.backend.book.dto.BookSummaryResponse;
 @RequestMapping("/api/search")
 public class SearchController {
 
-    private static final int DEFAULT_LIMIT = 20;
     private static final int MAX_LIMIT = 50;
 
     private final HybridSearchService hybridSearchService;
+    private final EventPublisher eventPublisher;
 
-    public SearchController(HybridSearchService hybridSearchService) {
+    public SearchController(HybridSearchService hybridSearchService, EventPublisher eventPublisher) {
         this.hybridSearchService = hybridSearchService;
+        this.eventPublisher = eventPublisher;
     }
 
     /**
@@ -37,6 +43,14 @@ public class SearchController {
             @RequestParam String q,
             @RequestParam(required = false, defaultValue = "20") int limit) {
         int effectiveLimit = Math.max(1, Math.min(limit, MAX_LIMIT));
-        return hybridSearchService.search(q, effectiveLimit);
+        List<BookSummaryResponse> results = hybridSearchService.search(q, effectiveLimit);
+
+        // A non-blank query is a "searched" interaction; the query text is kept
+        // in `detail` (no specific book). Attributed to the user if logged in.
+        if (StringUtils.hasText(q)) {
+            eventPublisher.publish(InteractionEvent.of(
+                    InteractionEventType.SEARCHED, CurrentUser.idOrNull(), null, q));
+        }
+        return results;
     }
 }
