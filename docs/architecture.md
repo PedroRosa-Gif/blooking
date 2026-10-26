@@ -75,9 +75,12 @@ When a user submits a prompt via the Frontend:
    * **Semantic Search:** Queries vector embeddings stored in PostgreSQL using `pgvector` (cosine similarity / L2 distance).
    * **Keyword Search:** Queries standard text using PostgreSQL Full-Text Search (`tsvector`).
 3. **Ranking & Merging:** The Retriever combines and re-ranks results from both strategies using **Reciprocal Rank Fusion (RRF)** before sending the `Retrieved Documents` back to the Frontend.
-   * RRF is chosen as the baseline because it fuses two ranked lists without needing to normalize scores of different natures (cosine distance vs. text-match relevance).
-   * `rating` / `numRatings` are used as a light tie-breaker / boosting factor in the re-ranking step.
-   * **Field weighting (title vs. author vs. genres vs. description) for the keyword/FTS ranking is intentionally deferred and will be defined during implementation.**
+   * RRF is chosen as the baseline because it fuses two ranked lists without needing to normalize scores of different natures (cosine distance vs. text-match relevance). It uses the conventional constant `k = 60`.
+   * Each strategy contributes up to 50 candidates; the fused list is truncated to the requested page size.
+   * **Keyword field weighting** (FTS) is configured on the generated `search_vector` column with the priority **title (A) > author (B) > description (C) > genres (D)**.
+   * If the embedding backend (Ollama) is unavailable at query time, search **degrades gracefully to keyword-only** results instead of failing.
+
+   Exposed as `GET /api/search?q=...&limit=...`.
 
 ### Multilingual Embedding Strategy
 To support Portuguese and English queries over an English dataset without manual translation, the backend relies on the multilingual embedding model **`bge-m3`** (via Ollama / Spring AI). Other languages are not required.

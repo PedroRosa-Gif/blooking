@@ -14,29 +14,36 @@ import org.apache.commons.csv.CSVParser;
 import org.apache.commons.csv.CSVRecord;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.stereotype.Component;
-import org.springframework.transaction.annotation.Transactional;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import dev.blooking.backend.book.Book;
 import dev.blooking.backend.book.BookRepository;
+import dev.blooking.backend.search.EmbeddingService;
+import dev.blooking.backend.search.SearchRepository;
 
 /**
- * Seeds the {@code books} table from the bundled sample CSV on startup.
+ * Seeds the {@code books} table from the bundled sample CSV on startup and
+ * generates a semantic embedding for each book.
  *
- * <p>Idempotent: it only runs when the table is empty, so restarting the app
- * does not duplicate data. The CSV is produced by {@code scripts/extract_books.py}
- * and lives on the classpath at {@code data/books_sample.csv}.
+ * <p>Idempotent in two independent steps:
+ * <ul>
+ *   <li><b>Rows:</b> the CSV is imported only when the table is empty.</li>
+ *   <li><b>Embeddings:</b> embeddings are generated only for books that do not
+ *       have one yet, so a restart backfills any that are missing (e.g. if a
+ *       previous run was interrupted or Ollama was down).</li>
+ * </ul>
  *
- * <p>The {@code genres}, {@code characters} and {@code awards} columns are JSON
- * arrays in the CSV and are parsed with Jackson. All other parsing is defensive:
- * a malformed value becomes {@code null}/empty rather than aborting the import.
+ * <p>Embedding generation calls Ollama ({@code bge-m3}) once per book, so the
+ * first full run takes a while. It can be disabled with
+ * {@code blooking.seed.embeddings.enabled=false} (e.g. in tests).
  */
 @Component
 @ConditionalOnProperty(name = "blooking.seed.enabled", havingValue = "true", matchIfMissing = true)
@@ -48,19 +55,43 @@ public class BookSeeder implements ApplicationRunner {
     private static final int BATCH_SIZE = 500;
 
     private final BookRepository bookRepository;
+    private final SearchRepository searchRepository;
+    private final EmbeddingService embeddingService;
     private final ObjectMapper objectMapper;
 
-    public BookSeeder(BookRepository bookRepository, ObjectMapper objectMapper) {
+    @Value("${blooking.seed.embeddings.enabled:true}")
+    private boolean embeddingsEnabled;
+
+    public BookSeeder(BookRepository bookRepository,
+                      SearchRepository searchRepository,
+                      EmbeddingService embeddingService,
+                      ObjectMapper objectMapper) {
         this.bookRepository = bookRepository;
+        this.searchRepository = searchRepository;
+        this.embeddingService = embeddingService;
         this.objectMapper = objectMapper;
     }
 
     @Override
-    @Transactional
     public void run(ApplicationArguments args) {
+        importRowsIfEmpty();
+        if (embeddingsEnabled) {
+            generateMissingEmbeddings();
+        } else {
+            log.info("Embedding generation disabled (blooking.seed.embeddings.enabled=false).");
+        }
+    }
+
+    // --- Step 1: import rows ------------------------------------------------
+
+    // Not @Transactional: each bookRepository.saveAll(batch) runs in its own
+    // transaction (Spring Data default), which is what we want for large batched
+    // imports. (A @Transactional here would be ineffective anyway — it is called
+    // via self-invocation from run(), which bypasses the Spring proxy.)
+    protected void importRowsIfEmpty() {
         long existing = bookRepository.count();
         if (existing > 0) {
-            log.info("Book catalog already populated ({} books); skipping seed.", existing);
+            log.info("Book catalog already populated ({} books); skipping CSV import.", existing);
             return;
         }
 
@@ -107,6 +138,47 @@ public class BookSeeder implements ApplicationRunner {
 
         log.info("Book catalog seeding complete: {} books imported.", imported);
     }
+
+    // --- Step 2: generate embeddings ---------------------------------------
+
+    /**
+     * Generates embeddings for every book that does not yet have one. Each book
+     * is embedded and persisted individually (its own transaction via the JDBC
+     * update) so partial progress survives an interruption and a restart only
+     * processes the remainder. A single failing book is logged and skipped.
+     */
+    protected void generateMissingEmbeddings() {
+        long total = bookRepository.count();
+        long already = searchRepository.countEmbedded();
+        if (total == 0 || already >= total) {
+            log.info("Embeddings already present for all {} books; skipping generation.", total);
+            return;
+        }
+
+        log.info("Generating embeddings: {} of {} books still need one. This may take a while...",
+                total - already, total);
+
+        List<Book> books = bookRepository.findAll();
+        int done = 0;
+        int failed = 0;
+        for (Book book : books) {
+            try {
+                float[] vector = embeddingService.embedBook(book);
+                searchRepository.updateEmbedding(book.getId(), vector);
+                done++;
+                if (done % 250 == 0) {
+                    log.info("Embedded {} books so far...", done);
+                }
+            } catch (RuntimeException e) {
+                failed++;
+                log.warn("Failed to embed book id={} ('{}'): {}",
+                        book.getId(), book.getTitle(), e.getMessage());
+            }
+        }
+        log.info("Embedding generation complete: {} embedded, {} failed.", done, failed);
+    }
+
+    // --- CSV mapping (unchanged) -------------------------------------------
 
     private Book toBook(CSVRecord r) {
         String title = get(r, "title");
