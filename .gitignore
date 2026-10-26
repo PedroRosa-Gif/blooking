@@ -23,3 +23,12 @@ Thumbs.db
 # Node / frontend (added later)
 node_modules/
 dist/
+
+# Raw dataset — NOT committed (only the cleaned sample is).
+# Place the ~70MB Kaggle CSV here locally:
+apps/backend/data/raw/
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/

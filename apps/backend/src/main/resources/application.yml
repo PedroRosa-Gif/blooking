@@ -19,7 +19,19 @@ spring:
     properties:
       hibernate:
         format_sql: true
+        jdbc:
+          batch_size: 100
+        order_inserts: true
     show-sql: false
+
+  # Pageable defaults and stable Page JSON serialization (via_dto avoids the
+  # unstable PageImpl structure and its startup warning).
+  data:
+    web:
+      pageable:
+        max-page-size: 100
+        default-page-size: 20
+        serialization-mode: via_dto
 
   # --- Flyway (database migrations) ---
   flyway:
