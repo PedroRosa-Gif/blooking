@@ -94,15 +94,21 @@ Two layers:
   ./mvnw test
   ```
 - **Integration tests** (`*IT`) — run against a real PostgreSQL (+pgvector)
-  started by **Testcontainers**, so they require a **running Docker daemon**.
-  Run (includes the unit tests too) with:
+  started by **Testcontainers**. Run (includes the unit tests too) with:
   ```bash
   ./mvnw verify
   ```
+  If no Docker daemon is reachable, these tests are **skipped** (not failed),
+  so `mvn verify` still succeeds on machines/CI without Docker.
 
 The integration DB is ephemeral and isolated from your dev database; it does
 not touch the `docker-compose` Postgres. The first run downloads the pgvector
 image (~150 MB) once.
+
+> **Docker Engine 29+ note:** Testcontainers is pinned to `1.21.4` (overriding
+> the Spring Boot BOM). Earlier versions fail against Docker Engine 29+
+> (Docker Desktop 4.52+) with a `400 Bad Request` / "Could not find a valid
+> Docker environment", even when Docker is running.
 
 ## Database migrations (Flyway)
 

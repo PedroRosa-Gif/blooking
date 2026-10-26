@@ -20,6 +20,12 @@
     <properties>
         <java.version>21</java.version>
         <spring-ai.version>1.0.1</spring-ai.version>
+        <!-- Override the Testcontainers version managed by the Spring Boot BOM.
+             1.21.4 is the first release that negotiates the Docker Engine API
+             correctly with Docker Engine 29+ (Docker Desktop 4.52+); earlier
+             versions fail with a 400 Bad Request ("Could not find a valid
+             Docker environment"). -->
+        <testcontainers.version>1.21.4</testcontainers.version>
     </properties>
 
     <dependencyManagement>
@@ -28,6 +34,13 @@
                 <groupId>org.springframework.ai</groupId>
                 <artifactId>spring-ai-bom</artifactId>
                 <version>${spring-ai.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+            <dependency>
+                <groupId>org.testcontainers</groupId>
+                <artifactId>testcontainers-bom</artifactId>
+                <version>${testcontainers.version}</version>
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>
