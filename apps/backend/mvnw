@@ -1,0 +1,62 @@
+#!/bin/sh
+# ----------------------------------------------------------------------------
+# Apache Maven Wrapper startup script (Unix).
+# Bootstraps the Maven version declared in .mvn/wrapper/maven-wrapper.properties
+# (distributionType=only-script), downloading it on first use if needed.
+# ----------------------------------------------------------------------------
+set -e
+
+if [ -z "$MAVEN_SKIP_RC" ]; then
+  [ -f /usr/local/etc/mavenrc ] && . /usr/local/etc/mavenrc
+  [ -f /etc/mavenrc ] && . /etc/mavenrc
+  [ -f "$HOME/.mavenrc" ] && . "$HOME/.mavenrc"
+fi
+
+# Resolve the directory containing this script.
+SCRIPT_DIR=$(cd "$(dirname "$0")" && pwd)
+WRAPPER_PROPERTIES="$SCRIPT_DIR/.mvn/wrapper/maven-wrapper.properties"
+
+if [ ! -f "$WRAPPER_PROPERTIES" ]; then
+  echo "Cannot find $WRAPPER_PROPERTIES" >&2
+  exit 1
+fi
+
+# Read the distribution URL.
+distributionUrl=$(grep '^distributionUrl=' "$WRAPPER_PROPERTIES" | cut -d'=' -f2-)
+if [ -z "$distributionUrl" ]; then
+  echo "distributionUrl not set in $WRAPPER_PROPERTIES" >&2
+  exit 1
+fi
+
+# Derive a cache dir and the distribution name.
+MAVEN_USER_HOME="${MAVEN_USER_HOME:-$HOME/.m2}"
+WRAPPER_DIR="$MAVEN_USER_HOME/wrapper/dists"
+DIST_NAME=$(basename "$distributionUrl" | sed 's/-bin\.zip$//;s/\.zip$//;s/\.tar\.gz$//')
+DIST_HOME="$WRAPPER_DIR/$DIST_NAME"
+MVN_CMD="$DIST_HOME/bin/mvn"
+
+download() {
+  mkdir -p "$WRAPPER_DIR"
+  TMP_ZIP="$WRAPPER_DIR/$DIST_NAME.zip"
+  echo "Downloading Maven from: $distributionUrl"
+  if command -v curl >/dev/null 2>&1; then
+    curl -fsSL -o "$TMP_ZIP" "$distributionUrl"
+  elif command -v wget >/dev/null 2>&1; then
+    wget -q -O "$TMP_ZIP" "$distributionUrl"
+  else
+    echo "Neither curl nor wget is available to download Maven." >&2
+    exit 1
+  fi
+  (cd "$WRAPPER_DIR" && unzip -q "$TMP_ZIP")
+  EXTRACTED=$(cd "$WRAPPER_DIR" && unzip -Z -1 "$TMP_ZIP" | head -1 | cut -d/ -f1)
+  [ "$EXTRACTED" != "$DIST_NAME" ] && mv "$WRAPPER_DIR/$EXTRACTED" "$DIST_HOME"
+  rm -f "$TMP_ZIP"
+}
+
+# If a Maven is already on the PATH, prefer running it directly.
+if command -v mvn >/dev/null 2>&1; then
+  exec mvn "$@"
+fi
+
+[ -x "$MVN_CMD" ] || download
+exec "$MVN_CMD" "$@"
