@@ -59,7 +59,7 @@ localhost defaults are baked in, matching `docker-compose.yml`):
 | `POST` | `/api/auth/register` | Create account → access + refresh token |
 | `POST` | `/api/auth/login` | Log in → access + refresh token |
 | `POST` | `/api/auth/refresh` | Exchange refresh token for a new access token (rotates refresh) |
-| `POST` | `/api/auth/logout` | Revoke the given refresh token |
+| `POST` | `/api/auth/logout` | Revoke the given refresh token (public; auth is the refresh token itself) |
 | `GET` | `/api/auth/me` | Current user (requires `Authorization: Bearer <access>`) |
 | `GET` | `/actuator/health` | Deep health (DB, RabbitMQ, disk, ...) |
 | `GET` | `/actuator/info` | Build/app info |
@@ -141,7 +141,7 @@ Config via env vars: `JWT_SECRET` (set a long random value in real
 environments), `JWT_ACCESS_EXPIRATION_MS`, `JWT_REFRESH_EXPIRATION_MS`,
 `CORS_ALLOWED_ORIGINS`.
 
-Public endpoints: `/api/books/**`, `/api/search`, `/api/auth/{register,login,refresh}`,
+Public endpoints: `/api/books/**`, `/api/search`, `/api/auth/{register,login,refresh,logout}`,
 `/actuator/health`. Everything else requires a valid access token.
 
 > **Token transport (current vs. planned):** both tokens are returned in the

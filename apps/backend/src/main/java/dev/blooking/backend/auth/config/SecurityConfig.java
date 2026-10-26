@@ -57,8 +57,12 @@ public class SecurityConfig {
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
-                        // Public auth endpoints
-                        .requestMatchers("/api/auth/register", "/api/auth/login", "/api/auth/refresh").permitAll()
+                        // Public auth endpoints. Logout is public because it
+                        // authenticates via the refresh token in the request body
+                        // (not the access token), so it must work even after the
+                        // short-lived access token has expired.
+                        .requestMatchers("/api/auth/register", "/api/auth/login",
+                                "/api/auth/refresh", "/api/auth/logout").permitAll()
                         // Public discovery (US01–US04)
                         .requestMatchers(HttpMethod.GET, "/api/books/**", "/api/search").permitAll()
                         // Health
