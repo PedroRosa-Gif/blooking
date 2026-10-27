@@ -3,6 +3,7 @@ package dev.blooking.backend.recommendation;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.List;
+import java.util.UUID;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -19,7 +20,7 @@ import dev.blooking.backend.support.PostgresTestContainer;
 /**
  * Integration tests for {@link UserProfileRepository} against a real PostgreSQL
  * (+pgvector) container. Exercises the pgvector SQL that cannot run on an
- * embedded DB: centroid (vector {@code avg()}) profile building, cosine
+ * embedded DB: the weighted-centroid profile (favorites + capped views), cosine
  * nearest-neighbor recommendations with favorite exclusion, and the popularity
  * cold-start fallback.
  *
@@ -36,6 +37,11 @@ import dev.blooking.backend.support.PostgresTestContainer;
 class UserProfileRepositoryIT extends PostgresTestContainer {
 
     private static final int DIM = 1024;
+
+    // Default weights, mirroring application.yml, used by the recompute helper.
+    private static final double FAVORITE_WEIGHT = 1.0;
+    private static final double VIEW_WEIGHT = 0.25;
+    private static final int VIEW_CAP = 3;
 
     @Autowired
     private JdbcTemplate jdbc;
@@ -58,6 +64,11 @@ class UserProfileRepositoryIT extends PostgresTestContainer {
         userId = jdbc.queryForObject("SELECT id FROM users WHERE username = 'alice'", Long.class);
     }
 
+    /** Recompute with the default weights. */
+    private void recompute() {
+        repo.recomputeProfile(userId, FAVORITE_WEIGHT, VIEW_WEIGHT, VIEW_CAP);
+    }
+
     /** Inserts a book with the given popularity and an optional axis-aligned embedding. */
     private long insertBook(String title, long numRatings, Integer hotAxis) {
         jdbc.update("INSERT INTO books (title, num_ratings, rating) VALUES (?, ?, 4.0)",
@@ -74,6 +85,16 @@ class UserProfileRepositoryIT extends PostgresTestContainer {
         jdbc.update("INSERT INTO favorites (user_id, book_id) VALUES (?, ?)", userId, bookId);
     }
 
+    /** Records {@code times} book.viewed interactions for the given book. */
+    private void view(long bookId, int times) {
+        for (int i = 0; i < times; i++) {
+            jdbc.update(
+                    "INSERT INTO interactions (event_id, event_type, user_id, book_id, occurred_at) "
+                            + "VALUES (?, 'book.viewed', ?, ?, now())",
+                    UUID.randomUUID(), userId, bookId);
+        }
+    }
+
     /** A 1024-dim unit vector with a single component (hotAxis) set to 1.0. */
     private static float[] axisVector(int hotAxis) {
         float[] v = new float[DIM];
@@ -82,8 +103,8 @@ class UserProfileRepositoryIT extends PostgresTestContainer {
     }
 
     @Test
-    void recompute_withNoFavorites_leavesEmptyProfile() {
-        repo.recomputeProfile(userId);
+    void recompute_withNoSignal_leavesEmptyProfile() {
+        recompute();
 
         assertThat(repo.hasProfileEmbedding(userId)).isFalse();
         assertThat(repo.interactionCount(userId)).contains(0);
@@ -97,7 +118,7 @@ class UserProfileRepositoryIT extends PostgresTestContainer {
 
         favorite(a);
         favorite(b);
-        repo.recomputeProfile(userId);
+        recompute();
 
         assertThat(repo.hasProfileEmbedding(userId)).isTrue();
         // Centroid built from the two favorited books only.
@@ -111,7 +132,7 @@ class UserProfileRepositoryIT extends PostgresTestContainer {
 
         favorite(withEmb);
         favorite(noEmb);
-        repo.recomputeProfile(userId);
+        recompute();
 
         // Only the one embedded favorite contributes to the centroid.
         assertThat(repo.interactionCount(userId)).contains(1);
@@ -122,15 +143,76 @@ class UserProfileRepositoryIT extends PostgresTestContainer {
     void unfavorite_recompute_removesSignal() {
         long a = insertBook("A on axis 0", 100, 0);
         favorite(a);
-        repo.recomputeProfile(userId);
+        recompute();
         assertThat(repo.hasProfileEmbedding(userId)).isTrue();
 
         // Simulate an unfavorite: remove the favorite, then recompute.
         jdbc.update("DELETE FROM favorites WHERE user_id = ? AND book_id = ?", userId, a);
-        repo.recomputeProfile(userId);
+        recompute();
 
         assertThat(repo.hasProfileEmbedding(userId)).isFalse();
         assertThat(repo.interactionCount(userId)).contains(0);
+    }
+
+    @Test
+    void recompute_viewContributesToProfile() {
+        long viewed = insertBook("viewed book", 100, 0);
+        insertBook("other", 100, 1);
+
+        view(viewed, 1);
+        recompute();
+
+        // A view (no favorites) is enough to build a profile; one distinct book.
+        assertThat(repo.hasProfileEmbedding(userId)).isTrue();
+        assertThat(repo.interactionCount(userId)).contains(1);
+    }
+
+    @Test
+    void recompute_repeatedViewsOfSameBookCountAsOneDistinctBook() {
+        long viewed = insertBook("viewed many times", 100, 0);
+
+        view(viewed, 10); // many refreshes
+        recompute();
+
+        // interaction_count counts DISTINCT contributing books, not raw views.
+        assertThat(repo.interactionCount(userId)).contains(1);
+        assertThat(repo.hasProfileEmbedding(userId)).isTrue();
+    }
+
+    @Test
+    void recompute_viewsOfFavoritedBookAreExcluded() {
+        long fav = insertBook("favorited and viewed", 100, 0);
+
+        favorite(fav);
+        view(fav, 5);
+        recompute();
+
+        // The view rows for a favorited book must not double-count: only the
+        // favorite contributes, so exactly one distinct book.
+        assertThat(repo.interactionCount(userId)).contains(1);
+    }
+
+    @Test
+    void recompute_cappedViewsLetFavoriteDominateDirection() {
+        // Favorite points on axis 0; a heavily-viewed book points on axis 1.
+        // With favorite weight 1.0 and view weight 0.25 capped at 3 views
+        // (-> 0.75), the favorite still outweighs the views, so the profile
+        // leans toward axis 0 and a fresh axis-0 book ranks first.
+        long fav = insertBook("fav axis 0", 100, 0);
+        long viewedLots = insertBook("viewed axis 1", 100, 1);
+        long candidate0 = insertBook("candidate axis 0", 100, 0);
+        long candidate1 = insertBook("candidate axis 1", 100, 1);
+
+        favorite(fav);
+        view(viewedLots, 50); // capped at VIEW_CAP
+        recompute();
+
+        List<Long> recs = repo.recommendByProfile(userId, 10);
+
+        // Already-interacted books (favorite + viewed) are excluded from recs.
+        assertThat(recs).doesNotContain(fav, viewedLots);
+        // The axis-0 candidate (aligned with the dominant favorite) ranks first.
+        assertThat(recs.indexOf(candidate0)).isLessThan(recs.indexOf(candidate1));
     }
 
     @Test
@@ -140,7 +222,7 @@ class UserProfileRepositoryIT extends PostgresTestContainer {
         long far = insertBook("far on axis 5", 100, 5);     // orthogonal
 
         favorite(favA);
-        repo.recomputeProfile(userId);
+        recompute();
 
         List<Long> recs = repo.recommendByProfile(userId, 10);
 

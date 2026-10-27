@@ -61,16 +61,22 @@ public class InteractionConsumer {
     }
 
     /**
-     * Keeps the user's preference embedding in sync with their favorites. Only
-     * favorite/unfavorite events (by a logged-in user) change the preference
-     * signal; anonymous views/searches carry no user and are ignored here.
+     * Keeps the user's preference embedding in sync with their interactions.
+     * Favorite/unfavorite (strong signal) and view (weaker signal) events by a
+     * logged-in user change the preference profile; search events and anonymous
+     * interactions (which carry no user) are ignored here.
+     *
+     * <p>The recompute reads the whole live state (favorites + view history), so
+     * it is idempotent: this runs AFTER the current event was persisted to
+     * {@code interactions}, so a just-recorded view is already reflected.
      */
     private void updatePreferenceProfile(InteractionEvent event) {
         if (event.userId() == null) {
             return;
         }
         if (event.type() == InteractionEventType.FAVORITED
-                || event.type() == InteractionEventType.UNFAVORITED) {
+                || event.type() == InteractionEventType.UNFAVORITED
+                || event.type() == InteractionEventType.VIEWED) {
             userProfileService.refreshProfile(event.userId());
         }
     }

@@ -70,6 +70,14 @@ blooking:
     issuer: blooking
   cors:
     allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:5173}
+  recommendation:
+    # Weights for building a user's preference embedding (weighted centroid of
+    # the books they interacted with). Favorites are the strong signal; views a
+    # weaker one, scaled by how many times a book was viewed, up to view-cap
+    # (so repeated views mean stronger interest without refreshes dominating).
+    favorite-weight: ${RECO_FAVORITE_WEIGHT:1.0}
+    view-weight: ${RECO_VIEW_WEIGHT:0.25}
+    view-cap: ${RECO_VIEW_CAP:3}
 
 # --- Server ---
 server:

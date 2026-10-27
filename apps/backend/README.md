@@ -46,6 +46,9 @@ localhost defaults are baked in, matching `docker-compose.yml`):
 | `RABBITMQ_USER` / `RABBITMQ_PASSWORD` | `blooking` | RabbitMQ credentials |
 | `OLLAMA_BASE_URL` | `http://localhost:11434` | Ollama endpoint |
 | `EMBEDDING_MODEL` | `bge-m3` | Embedding model name |
+| `RECO_FAVORITE_WEIGHT` | `1.0` | Weight of a favorite in the preference embedding |
+| `RECO_VIEW_WEIGHT` | `0.25` | Weight of a view in the preference embedding |
+| `RECO_VIEW_CAP` | `3` | Max views per book counted toward the profile |
 | `SERVER_PORT` | `8080` | HTTP port |
 
 ## Endpoints (current)
@@ -179,10 +182,22 @@ Event types / routing keys: `book.viewed`, `book.searched`, `book.favorited`,
 
 `GET /api/recommendations?limit=` (auth) returns a personalized list of books.
 
-The consumer doubles as a **recommendation worker**: when a user favorites or
-unfavorites a book, it recomputes that user's **preference embedding** — the
-centroid (mean vector) of the embeddings of the books they currently favorite —
+The consumer doubles as a **recommendation worker**: when a user favorites,
+unfavorites, or views a book, it recomputes that user's **preference embedding**
 and stores it in `user_profiles` (migration `V8`).
+
+The preference embedding is a **weighted centroid** of the embeddings of the
+books the user interacted with:
+
+- **favorites** are the strong signal (weight `1.0`);
+- **views** are a weaker signal (weight `0.25` per view, capped at `3` views per
+  book) — so repeatedly viewing a book counts as stronger interest, but a burst
+  of page refreshes can't drown out the user's other interests;
+- views of a book the user has already favorited are ignored (no double count).
+
+The weights are configurable under `blooking.recommendation.*` (see
+`application.yml`). Because the recompute reads the live favorites + view history
+each time, unfavoriting removes a book's influence and the profile never drifts.
 
 Recommendations are then served in two modes:
 
