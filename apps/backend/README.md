@@ -64,6 +64,7 @@ localhost defaults are baked in, matching `docker-compose.yml`):
 | `POST` | `/api/favorites/{bookId}` | Favorite a book (auth) |
 | `DELETE` | `/api/favorites/{bookId}` | Remove a favorite (auth) |
 | `GET` | `/api/favorites` | List my favorite books, paginated (auth) |
+| `GET` | `/api/recommendations?limit=` | Personalized book recommendations (auth) |
 | `GET` | `/actuator/health` | Deep health (DB, RabbitMQ, disk, ...) |
 | `GET` | `/actuator/info` | Build/app info |
 | `GET` | `/actuator/metrics` | Metrics |
@@ -158,7 +159,8 @@ Public endpoints: `/api/books/**`, `/api/search`, `/api/auth/{register,login,ref
 Logged-in users can favorite/unfavorite books (`/api/favorites`). Every
 interaction — **view, search, favorite, unfavorite** — publishes an event to
 **RabbitMQ**, and a consumer records it in the append-only `interactions` table
-(audit log + source data for recommendations).
+(audit log + source data for recommendations — see
+[Recommendations](#recommendations-us05)).
 
 **Watch it work:**
 - **RabbitMQ Management UI** → http://localhost:15672 (user/pass from `.env`,
@@ -172,6 +174,28 @@ a new row lands in `interactions`.
 
 Event types / routing keys: `book.viewed`, `book.searched`, `book.favorited`,
 `book.unfavorited` (topic exchange, bound with `book.*`).
+
+## Recommendations (US05)
+
+`GET /api/recommendations?limit=` (auth) returns a personalized list of books.
+
+The consumer doubles as a **recommendation worker**: when a user favorites or
+unfavorites a book, it recomputes that user's **preference embedding** — the
+centroid (mean vector) of the embeddings of the books they currently favorite —
+and stores it in `user_profiles` (migration `V8`).
+
+Recommendations are then served in two modes:
+
+- **Content-based** — when the user has a preference embedding, return the books
+  whose embeddings are nearest to it by cosine distance (pgvector `<=>`),
+  excluding books they already favorite.
+- **Cold-start fallback** — a user with no favorites yet gets the most popular
+  books (by `num_ratings`, then `rating`), so the section is never empty.
+
+```bash
+# After logging in and favoriting a few books:
+curl -H "Authorization: Bearer <access>" "http://localhost:8080/api/recommendations?limit=12"
+```
 
 ## Tests
 

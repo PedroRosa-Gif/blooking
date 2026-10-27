@@ -117,7 +117,9 @@ User actions publish events to **RabbitMQ**. A background consumer (**Recommenda
 * A **Dead Letter Queue** (`book.events.dlq`, via a dead-letter exchange) captures messages that keep failing, instead of losing them or retrying forever.
 * **Publishing is best-effort** this phase: if the broker is down, the user action still succeeds and the event is dropped (logged). A **transactional outbox** is noted as a future hardening step for guaranteed delivery.
 
-The consumer persists every event to the append-only **`interactions`** table (audit log + recommendation source). The Recommendation Worker (next phase) will aggregate the embeddings of the books a user has favorited/viewed into a **user profile embedding**, used to retrieve similar books via `pgvector`.
+The consumer persists every event to the append-only **`interactions`** table (audit log + recommendation source) and acts as the **Recommendation Worker**: on each `book.favorited` / `book.unfavorited` event it recomputes the user's **profile embedding** — the centroid (mean vector) of the embeddings of the books the user currently favorites — and stores it in the `user_profiles` table (migration `V8`).
+
+`GET /api/recommendations` (authenticated, US05) then serves personalized results: the books whose embeddings are nearest (cosine distance) to the user's profile embedding via `pgvector`, excluding books already favorited. Users without a profile embedding yet (no favorites) get a **popularity-based cold-start fallback** (by `num_ratings`, then `rating`), so the recommendations section is never empty. The centroid is recomputed from the live `favorites` table on every event, so it is self-correcting and idempotent under at-least-once redelivery.
 
 ## Data Source & Pipeline
 
