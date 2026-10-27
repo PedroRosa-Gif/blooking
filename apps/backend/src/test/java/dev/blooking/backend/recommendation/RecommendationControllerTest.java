@@ -18,6 +18,8 @@ import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
+import dev.blooking.backend.auth.jwt.JwtService;
+
 /**
  * Web-layer tests for {@link RecommendationController}. Security filters are
  * disabled; the authenticated principal (user id) is injected directly, as in
@@ -33,6 +35,13 @@ class RecommendationControllerTest {
 
     @MockitoBean
     private RecommendationService recommendationService;
+
+    // The project's SecurityConfig (loaded in the web slice) wires the
+    // JwtAuthenticationFilter, which needs a JwtService. Security filters are
+    // disabled for these tests, but the bean must still be satisfiable so the
+    // application context can start. Mock it.
+    @MockitoBean
+    private JwtService jwtService;
 
     private void authenticateAs(long userId) {
         SecurityContextHolder.getContext().setAuthentication(

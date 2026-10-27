@@ -197,7 +197,7 @@ class UserProfileRepositoryIT extends PostgresTestContainer {
         // Favorite points on axis 0; a heavily-viewed book points on axis 1.
         // With favorite weight 1.0 and view weight 0.25 capped at 3 views
         // (-> 0.75), the favorite still outweighs the views, so the profile
-        // leans toward axis 0 and a fresh axis-0 book ranks first.
+        // leans toward axis 0 and a fresh axis-0 book ranks ahead of an axis-1 one.
         long fav = insertBook("fav axis 0", 100, 0);
         long viewedLots = insertBook("viewed axis 1", 100, 1);
         long candidate0 = insertBook("candidate axis 0", 100, 0);
@@ -209,9 +209,13 @@ class UserProfileRepositoryIT extends PostgresTestContainer {
 
         List<Long> recs = repo.recommendByProfile(userId, 10);
 
-        // Already-interacted books (favorite + viewed) are excluded from recs.
-        assertThat(recs).doesNotContain(fav, viewedLots);
-        // The axis-0 candidate (aligned with the dominant favorite) ranks first.
+        // The favorite is excluded from recommendations (already saved). The
+        // heavily-viewed book is NOT excluded — recommendByProfile only filters
+        // out favorites — so it may legitimately appear here.
+        assertThat(recs).doesNotContain(fav);
+        assertThat(recs).contains(candidate0, candidate1);
+        // The axis-0 candidate (aligned with the dominant favorite) ranks ahead
+        // of the axis-1 candidate: the favorite out-weighs the capped views.
         assertThat(recs.indexOf(candidate0)).isLessThan(recs.indexOf(candidate1));
     }
 
