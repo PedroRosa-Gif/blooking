@@ -52,7 +52,7 @@ class InteractionEventIT extends RabbitTestContainer {
     void redeliveredEvent_isRecordedOnlyOnce() {
         UUID id = UUID.randomUUID();
         InteractionEvent event = new InteractionEvent(
-                id, InteractionEventType.FAVORITED, 1L, 42L, null,
+                id, InteractionEventType.FAVORITED, null, null, null,
                 java.time.OffsetDateTime.now());
 
         // Publish the same event twice (simulating at-least-once redelivery).
