@@ -61,6 +61,9 @@ localhost defaults are baked in, matching `docker-compose.yml`):
 | `POST` | `/api/auth/refresh` | Exchange refresh token for a new access token (rotates refresh) |
 | `POST` | `/api/auth/logout` | Revoke the given refresh token (public; auth is the refresh token itself) |
 | `GET` | `/api/auth/me` | Current user (requires `Authorization: Bearer <access>`) |
+| `POST` | `/api/favorites/{bookId}` | Favorite a book (auth) |
+| `DELETE` | `/api/favorites/{bookId}` | Remove a favorite (auth) |
+| `GET` | `/api/favorites` | List my favorite books, paginated (auth) |
 | `GET` | `/actuator/health` | Deep health (DB, RabbitMQ, disk, ...) |
 | `GET` | `/actuator/info` | Build/app info |
 | `GET` | `/actuator/metrics` | Metrics |
@@ -149,6 +152,26 @@ Public endpoints: `/api/books/**`, `/api/search`, `/api/auth/{register,login,ref
 > is built, the **refresh token will move to an `HttpOnly` + `Secure` +
 > `SameSite` cookie** (protects it from XSS theft), keeping the short-lived
 > access token in the header. CSRF handling will be added at that point.
+
+## Favorites & interaction events
+
+Logged-in users can favorite/unfavorite books (`/api/favorites`). Every
+interaction — **view, search, favorite, unfavorite** — publishes an event to
+**RabbitMQ**, and a consumer records it in the append-only `interactions` table
+(audit log + source data for recommendations).
+
+**Watch it work:**
+- **RabbitMQ Management UI** → http://localhost:15672 (user/pass from `.env`,
+  default `blooking`/`blooking`). See the `blooking.events` exchange, the
+  `book.events` queue, the dead-letter queue, and message rates in real time.
+- **DBeaver / SQL** → `SELECT * FROM interactions ORDER BY recorded_at DESC;`
+  shows the events after they were consumed.
+
+Flow: favorite a book → the message appears and is consumed in the RabbitMQ UI →
+a new row lands in `interactions`.
+
+Event types / routing keys: `book.viewed`, `book.searched`, `book.favorited`,
+`book.unfavorited` (topic exchange, bound with `book.*`).
 
 ## Tests
 

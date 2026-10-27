@@ -2,14 +2,13 @@ package dev.blooking.backend.auth.config;
 
 import java.util.List;
 
+import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.HttpStatusEntryPoint;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
@@ -32,8 +31,15 @@ import org.springframework.http.HttpStatus;
  *       (not cookie-based) — this is safe for a Bearer-token API and will be
  *       revisited if/when refresh tokens move to an HttpOnly cookie.</li>
  * </ul>
+ *
+ * <p>{@code @ConditionalOnWebApplication}: the {@code SecurityFilterChain}
+ * depends on {@code HttpSecurity}, which only exists in a servlet web context.
+ * Non-web integration tests ({@code @SpringBootTest(webEnvironment = NONE)},
+ * e.g. the seeder and event pipeline tests) therefore skip this configuration
+ * instead of failing to build the filter chain.
  */
 @Configuration
+@ConditionalOnWebApplication(type = ConditionalOnWebApplication.Type.SERVLET)
 public class SecurityConfig {
 
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
@@ -43,11 +49,6 @@ public class SecurityConfig {
 
     public SecurityConfig(JwtAuthenticationFilter jwtAuthenticationFilter) {
         this.jwtAuthenticationFilter = jwtAuthenticationFilter;
-    }
-
-    @Bean
-    public PasswordEncoder passwordEncoder() {
-        return new BCryptPasswordEncoder();
     }
 
     @Bean

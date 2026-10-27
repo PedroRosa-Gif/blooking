@@ -26,7 +26,10 @@ import dev.blooking.backend.support.PostgresTestContainer;
  */
 @SpringBootTest(
         webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
-        properties = "blooking.seed.enabled=false")
+        properties = {
+                "blooking.seed.enabled=false",
+                "spring.rabbitmq.listener.simple.auto-startup=false"
+        })
 class AuthFlowIT extends PostgresTestContainer {
 
     @Autowired
