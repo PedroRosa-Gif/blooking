@@ -56,6 +56,11 @@ localhost defaults are baked in, matching `docker-compose.yml`):
 | `GET` | `/api/books` | List books (paginated); filters: `q`, `author`, `genre` |
 | `GET` | `/api/books/{id}` | Book detail |
 | `GET` | `/api/search?q=&limit=` | Hybrid search (semantic + keyword, RRF-fused) |
+| `POST` | `/api/auth/register` | Create account → access + refresh token |
+| `POST` | `/api/auth/login` | Log in → access + refresh token |
+| `POST` | `/api/auth/refresh` | Exchange refresh token for a new access token (rotates refresh) |
+| `POST` | `/api/auth/logout` | Revoke the given refresh token (public; auth is the refresh token itself) |
+| `GET` | `/api/auth/me` | Current user (requires `Authorization: Bearer <access>`) |
 | `GET` | `/actuator/health` | Deep health (DB, RabbitMQ, disk, ...) |
 | `GET` | `/actuator/info` | Build/app info |
 | `GET` | `/actuator/metrics` | Metrics |
@@ -107,6 +112,43 @@ Examples:
 curl "http://localhost:8080/api/search?q=young wizard at a magic school&limit=5"
 curl "http://localhost:8080/api/search?q=distopia jovens&limit=5"   # Portuguese query
 ```
+
+## Authentication (JWT)
+
+Stateless auth with a **short-lived access token** (JWT, 15 min) and a
+**long-lived, revocable refresh token** (opaque, 7 days, stored hashed in the
+`refresh_tokens` table). Login is by **username**.
+
+```bash
+# register (or login) -> { accessToken, refreshToken, tokenType, expiresInSeconds }
+curl -X POST http://localhost:8080/api/auth/register \
+  -H 'Content-Type: application/json' \
+  -d '{"username":"alice","password":"password123","displayName":"Alice"}'
+
+# call a protected endpoint
+curl http://localhost:8080/api/auth/me -H "Authorization: Bearer <accessToken>"
+
+# refresh (rotates the refresh token: the old one is revoked)
+curl -X POST http://localhost:8080/api/auth/refresh \
+  -H 'Content-Type: application/json' -d '{"refreshToken":"<refreshToken>"}'
+
+# logout (revokes the refresh token)
+curl -X POST http://localhost:8080/api/auth/logout \
+  -H 'Content-Type: application/json' -d '{"refreshToken":"<refreshToken>"}'
+```
+
+Config via env vars: `JWT_SECRET` (set a long random value in real
+environments), `JWT_ACCESS_EXPIRATION_MS`, `JWT_REFRESH_EXPIRATION_MS`,
+`CORS_ALLOWED_ORIGINS`.
+
+Public endpoints: `/api/books/**`, `/api/search`, `/api/auth/{register,login,refresh,logout}`,
+`/actuator/health`. Everything else requires a valid access token.
+
+> **Token transport (current vs. planned):** both tokens are returned in the
+> JSON body and sent via the `Authorization: Bearer` header. When the frontend
+> is built, the **refresh token will move to an `HttpOnly` + `Secure` +
+> `SameSite` cookie** (protects it from XSS theft), keeping the short-lived
+> access token in the header. CSRF handling will be added at that point.
 
 ## Tests
 

@@ -20,6 +20,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import dev.blooking.backend.book.dto.BookSummaryResponse;
 
 @WebMvcTest(SearchController.class)
+@org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc(addFilters = false)
 class SearchControllerTest {
 
     @Autowired

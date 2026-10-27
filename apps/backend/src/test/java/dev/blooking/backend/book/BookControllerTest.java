@@ -32,6 +32,7 @@ import dev.blooking.backend.common.exception.ResourceNotFoundException;
  * run fast and need no database.
  */
 @WebMvcTest(BookController.class)
+@org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc(addFilters = false)
 class BookControllerTest {
 
     @Autowired
