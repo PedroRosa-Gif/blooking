@@ -1,0 +1,271 @@
+@import 'tailwindcss';
+
+/* One type family, two cuts: Geist (UI + display) and Geist Mono (labels,
+   numbers, code). Same designer, same proportions, so they pair cleanly.
+   Mirrors design_v3 (Langbase), which uses the Geist family. */
+@import '@fontsource-variable/geist';
+@import '@fontsource-variable/geist-mono';
+
+/*
+ * Blooking design system — "Nightjar".
+ *
+ * Structure from design_v1 (quiet frame, soft cards), the sky-as-canvas scroll
+ * narrative from design_v2, and the console-style header, hairlines, pill
+ * buttons and mono labels from design_v3. The amber accent, the owl brand and
+ * the dark-first night palette are the project's own direction.
+ *
+ * IMPORTANT (Tailwind v4): never write `text-[var(--x)]` for a font size. It is
+ * ambiguous with text color and resolves as color. Use the named utilities
+ * below (text-body, text-headline, ...) or `text-[length:var(--x)]`.
+ */
+
+/* ---------- Theme-independent tokens -> Tailwind utilities ---------- */
+@theme {
+  --font-sans:
+    'Geist Variable', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --font-mono: 'Geist Mono Variable', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+
+  /* Type scale. Only these sizes are used across the UI. */
+  --text-caption: 0.75rem; /* 12 */
+  --text-caption--line-height: 1.5;
+  --text-body-sm: 0.875rem; /* 14 */
+  --text-body-sm--line-height: 1.45;
+  --text-body: 1rem; /* 16 */
+  --text-body--line-height: 1.6;
+  --text-lead: 1.125rem; /* 18 */
+  --text-lead--line-height: 1.55;
+  --text-title: 1.5rem; /* 24 */
+  --text-title--line-height: 1.25;
+  --text-headline: 3rem; /* 48 */
+  --text-headline--line-height: 1.05;
+  --text-display: 4.5rem; /* 72 */
+  --text-display--line-height: 1;
+
+  /* Radii: cards soft, covers slightly tighter, controls are pills. */
+  --radius-card: 1.25rem;
+  --radius-image: 0.75rem;
+
+  /* Depth is mostly tone + hairline; shadows stay very quiet. */
+  --shadow-card: inset 0 1px 0 0 rgb(255 255 255 / 0.04);
+  --shadow-cover: 0 18px 32px -16px rgb(0 0 0 / 0.7), 0 6px 12px -6px rgb(0 0 0 / 0.5);
+}
+
+/* ---------- Semantic, theme-dependent tokens ---------- */
+:root,
+[data-theme='dark'] {
+  color-scheme: dark;
+
+  /* True night: darkest at the zenith, a touch lighter and bluer at the horizon. */
+  --canvas: #03060c;
+  --band: #060a12; /* solid section tone (Apple-style tonal band) */
+  --nav: #02040a; /* the only surface darker than the page (design_v3) */
+  --card: #0a101a;
+  --card-2: #101827;
+  --line: rgb(148 170 205 / 0.12);
+  --line-strong: rgb(148 170 205 / 0.26);
+
+  --fg: #f3f6fb;
+  --fg-muted: #9ba7ba;
+  --fg-subtle: #6c788c;
+
+  --accent: #e8b059;
+  --accent-hover: #f2c476;
+  --accent-ink: #1a1203;
+
+  --sky: linear-gradient(180deg, #01030a 0%, #030710 38%, #050c19 74%, #09132a 100%);
+  --horizon: rgb(232 176 89 / 0.06);
+  --fade: 96px; /* how far a solid band melts into the sky */
+}
+
+[data-theme='light'] {
+  color-scheme: light;
+
+  --canvas: #f4f7fb;
+  --band: #e9eff6;
+  --nav: #ffffff;
+  --card: #ffffff;
+  --card-2: #f1f5fa;
+  --line: rgb(15 40 70 / 0.12);
+  --line-strong: rgb(15 40 70 / 0.24);
+
+  --fg: #0a1626;
+  --fg-muted: #4d5d72;
+  --fg-subtle: #76859a;
+
+  --accent: #a8690d;
+  --accent-hover: #c07d14;
+  --accent-ink: #ffffff;
+
+  --sky: linear-gradient(180deg, #cfe0f3 0%, #e6eef8 50%, #f4f7fb 100%);
+  --horizon: rgb(168 105 13 / 0.05);
+}
+
+/* Expose the semantic tokens as utilities: bg-canvas, text-fg, border-line, ... */
+@theme inline {
+  --color-canvas: var(--canvas);
+  --color-band: var(--band);
+  --color-nav: var(--nav);
+  --color-card: var(--card);
+  --color-card-2: var(--card-2);
+  --color-line: var(--line);
+  --color-line-strong: var(--line-strong);
+  --color-fg: var(--fg);
+  --color-fg-muted: var(--fg-muted);
+  --color-fg-subtle: var(--fg-subtle);
+  --color-accent: var(--accent);
+  --color-accent-hover: var(--accent-hover);
+  --color-accent-ink: var(--accent-ink);
+}
+
+/* Typed custom properties so the shelf edge fades can animate. */
+@property --fade-l {
+  syntax: '<length>';
+  inherits: false;
+  initial-value: 0px;
+}
+@property --fade-r {
+  syntax: '<length>';
+  inherits: false;
+  initial-value: 0px;
+}
+
+/* ---------- Base ---------- */
+@layer base {
+  html {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+    scroll-behavior: smooth;
+  }
+
+  body {
+    margin: 0;
+    min-height: 100dvh;
+    background-color: var(--canvas);
+    color: var(--fg);
+    font-family: var(--font-sans);
+    font-size: 1rem;
+    line-height: 1.6;
+    letter-spacing: -0.011em;
+    transition:
+      background-color 0.4s ease,
+      color 0.4s ease;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4 {
+    font-family: var(--font-sans);
+    color: var(--fg);
+    letter-spacing: -0.035em;
+  }
+
+  a {
+    color: inherit;
+    text-decoration: none;
+  }
+
+  img {
+    display: block;
+    max-width: 100%;
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+    border-radius: 6px;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    html {
+      scroll-behavior: auto;
+    }
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.001ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.001ms !important;
+    }
+  }
+}
+
+/* ---------- Components ---------- */
+@layer components {
+  /*
+   * Solid tonal band (the Apple pattern): a flat, full-bleed tone that
+   * alternates with the open sky. Its top and bottom edges dissolve into the
+   * sky over --fade, so there is no hard seam, border or blur.
+   */
+  .band {
+    background: linear-gradient(
+      to bottom,
+      transparent 0,
+      var(--band) var(--fade),
+      var(--band) calc(100% - var(--fade)),
+      transparent 100%
+    );
+  }
+
+  /* Scroll reveal (fade + rise). */
+  .reveal {
+    opacity: 0;
+    transform: translateY(14px);
+    transition:
+      opacity 0.7s ease,
+      transform 0.7s ease;
+    will-change: opacity, transform;
+  }
+  .reveal.is-visible {
+    opacity: 1;
+    transform: none;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .reveal {
+      opacity: 1;
+      transform: none;
+    }
+  }
+
+  /* Horizontal shelf: hidden scrollbar and soft edge fade. */
+  .no-scrollbar {
+    scrollbar-width: none;
+  }
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  /*
+   * Edge fade for a scrolling shelf. Each side fades only when there is more
+   * content on that side: the left edge stays crisp at the first book, the
+   * right edge stays crisp at the last. BookShelf sets data-at-start/-end.
+   */
+  .shelf-mask {
+    --fade-l: 0px;
+    --fade-r: 0px;
+    -webkit-mask-image: linear-gradient(
+      to right,
+      transparent 0,
+      #000 var(--fade-l),
+      #000 calc(100% - var(--fade-r)),
+      transparent 100%
+    );
+    mask-image: linear-gradient(
+      to right,
+      transparent 0,
+      #000 var(--fade-l),
+      #000 calc(100% - var(--fade-r)),
+      transparent 100%
+    );
+    transition:
+      --fade-l 0.25s ease,
+      --fade-r 0.25s ease;
+  }
+  /* 24px = the shelf's scroll-padding, so a snapped card is never under the fade. */
+  .shelf-mask[data-at-start='false'] {
+    --fade-l: 24px;
+  }
+  .shelf-mask[data-at-end='false'] {
+    --fade-r: 56px;
+  }
+}
