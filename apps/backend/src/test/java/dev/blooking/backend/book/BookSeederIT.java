@@ -17,7 +17,15 @@ import dev.blooking.backend.support.PostgresTestContainer;
  * <p>Requires Docker to be running. RabbitMQ/Ollama are not contacted at
  * startup (no listeners / no embedding calls happen here).
  */
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.NONE)
+@SpringBootTest(
+        webEnvironment = SpringBootTest.WebEnvironment.NONE,
+        properties = {
+                // Disable embedding generation so this test does not require a
+                // running Ollama; it only verifies the CSV import path.
+                "blooking.seed.embeddings.enabled=false",
+                // Do not start the RabbitMQ listener (no broker in this test).
+                "spring.rabbitmq.listener.simple.auto-startup=false"
+        })
 class BookSeederIT extends PostgresTestContainer {
 
     @Autowired

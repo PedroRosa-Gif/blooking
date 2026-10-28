@@ -75,9 +75,12 @@ When a user submits a prompt via the Frontend:
    * **Semantic Search:** Queries vector embeddings stored in PostgreSQL using `pgvector` (cosine similarity / L2 distance).
    * **Keyword Search:** Queries standard text using PostgreSQL Full-Text Search (`tsvector`).
 3. **Ranking & Merging:** The Retriever combines and re-ranks results from both strategies using **Reciprocal Rank Fusion (RRF)** before sending the `Retrieved Documents` back to the Frontend.
-   * RRF is chosen as the baseline because it fuses two ranked lists without needing to normalize scores of different natures (cosine distance vs. text-match relevance).
-   * `rating` / `numRatings` are used as a light tie-breaker / boosting factor in the re-ranking step.
-   * **Field weighting (title vs. author vs. genres vs. description) for the keyword/FTS ranking is intentionally deferred and will be defined during implementation.**
+   * RRF is chosen as the baseline because it fuses two ranked lists without needing to normalize scores of different natures (cosine distance vs. text-match relevance). It uses the conventional constant `k = 60`.
+   * Each strategy contributes up to 50 candidates; the fused list is truncated to the requested page size.
+   * **Keyword field weighting** (FTS) is configured on the generated `search_vector` column with the priority **title (A) > author (B) > description (C) > genres (D)**.
+   * If the embedding backend (Ollama) is unavailable at query time, search **degrades gracefully to keyword-only** results instead of failing.
+
+   Exposed as `GET /api/search?q=...&limit=...`.
 
 ### Multilingual Embedding Strategy
 To support Portuguese and English queries over an English dataset without manual translation, the backend relies on the multilingual embedding model **`bge-m3`** (via Ollama / Spring AI). Other languages are not required.
@@ -106,7 +109,19 @@ User actions publish events to **RabbitMQ**. A background consumer (**Recommenda
 | `book.favorited` | Logged-in user favorites a book | Yes |
 | `book.unfavorited` | Logged-in user removes a favorite | Yes |
 
-The Recommendation Worker aggregates the embeddings of the books a user has favorited/viewed into a **user profile embedding** (e.g. a weighted average), which is then used to retrieve similar books via `pgvector`.
+**Messaging topology (implemented):**
+
+* **Topic exchange** `blooking.events`; producers publish with the event's routing key (`book.viewed`, etc.).
+* A durable queue **`book.events`** is bound with the pattern `book.*` and consumed by the interaction consumer.
+* Messages are **persistent JSON** (survive a broker restart). Delivery is **at-least-once**, so the consumer is **idempotent**: each event carries a UUID `eventId` and is recorded at most once (`interactions.event_id` is `UNIQUE`).
+* A **Dead Letter Queue** (`book.events.dlq`, via a dead-letter exchange) captures messages that keep failing, instead of losing them or retrying forever.
+* **Publishing is best-effort** this phase: if the broker is down, the user action still succeeds and the event is dropped (logged). A **transactional outbox** is noted as a future hardening step for guaranteed delivery.
+
+The consumer persists every event to the append-only **`interactions`** table (audit log + recommendation source) and acts as the **Recommendation Worker**: on each `book.favorited` / `book.unfavorited` / `book.viewed` event it recomputes the user's **profile embedding** and stores it in the `user_profiles` table (migration `V8`).
+
+The profile embedding is a **weighted centroid** of the embeddings of the books the user interacted with. Favorites are the strong signal (weight `1.0`); views are a weaker signal (weight `0.25` per view, **capped** at 3 views per book so repeated visits count as stronger interest without a burst of refreshes dominating the profile); views of an already-favorited book are ignored to avoid double-counting. The weights are configurable (`blooking.recommendation.*`). `book.searched` is deliberately **not** fed into the profile: a raw query is noisy and exploratory — the concrete signal from a search is the `book.viewed` that follows when the user clicks a result.
+
+`GET /api/recommendations` (authenticated, US05) then serves personalized results: the books whose embeddings are nearest (cosine distance) to the user's profile embedding via `pgvector`, excluding books already favorited. Users without a profile embedding yet (no favorites) get a **popularity-based cold-start fallback** (by `num_ratings`, then `rating`), so the recommendations section is never empty. The centroid is recomputed from the live `favorites` table on every event, so it is self-correcting and idempotent under at-least-once redelivery.
 
 ## Data Source & Pipeline
 
@@ -125,6 +140,22 @@ The Recommendation Worker aggregates the embeddings of the books a user has favo
 
 # Security & Authentication
 
-* **Authentication:** Stateless authentication using JWT (JSON Web Tokens).
-* **API Security:** CORS policies configured for Frontend origin, rate limiting on search endpoints.
+* **Authentication:** Stateless, token-based.
+  * **Access token:** short-lived JWT (HS256, ~15 min), sent as `Authorization: Bearer`.
+  * **Refresh token:** long-lived (~7 days), opaque random string, **stored hashed**
+    (SHA-256) in the `refresh_tokens` table so it is server-side **revocable**.
+  * **Rotation:** each `/api/auth/refresh` revokes the presented refresh token and
+    issues a new one. **Logout** revokes the refresh token.
+  * Login is by **username** (email + verification/recovery is a future addition).
+  * Passwords hashed with **BCrypt**.
+* **Public vs. protected:** book discovery (`/api/books/**`, `/api/search`) and the
+  auth entry points are public; everything else requires a valid access token.
+* **API Security:** CORS restricted to the configured frontend origin; CSRF disabled
+  (token-based, not cookie-based — to be revisited when refresh tokens move to an
+  HttpOnly cookie); rate limiting on auth/search endpoints is a planned hardening step.
 * **Gated actions:** favoriting/unfavoriting books requires an authenticated user.
+
+> **Token transport evolution:** currently both tokens travel in the JSON body /
+> `Authorization` header (clean, frontend-agnostic). Once the React frontend
+> exists, the refresh token will move to an `HttpOnly`/`Secure`/`SameSite` cookie
+> to protect it from XSS theft, with CSRF protection added accordingly.
