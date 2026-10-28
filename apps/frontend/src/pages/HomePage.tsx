@@ -1,14 +1,14 @@
-import { useMemo, useState, type FormEvent } from 'react';
+import { useState, type FormEvent } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import { useI18n } from '@/i18n/I18nProvider';
-import type { BookSummary } from '@/types/api';
-import { MOCK_BOOK_SUMMARIES } from '@/mocks/books';
-import { buildShelves } from '@/lib/shelves';
+import { useSearch } from '@/api/hooks';
+import { SHELF_DEFS } from '@/lib/shelves';
 import { Section } from '@/components/layout/Section';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { Reveal } from '@/components/ui/Reveal';
 import { Tag } from '@/components/ui/Tag';
-import { BookShelf } from '@/components/ui/BookShelf';
+import { GenreShelf } from '@/components/book/GenreShelf';
 import { BookOpenIcon, GlobeIcon, HeartIcon, SearchIcon } from '@/components/ui/Icon';
 
 const STATS = ['books', 'lang', 'dim', 'rrf'] as const;
@@ -20,27 +20,23 @@ const h2Class = 'text-4xl font-semibold sm:text-headline';
 
 /**
  * Home. Bands, top to bottom:
- *   Hero (sky) > Genre shelves (solid) > How it works (sky) >
+ *   Hero (sky) > Genre shelves (solid, live API) > How it works (sky) >
  *   Why Blooking, bento (solid) > CTA (sky)
- * Sample data for now; Phase 2 swaps in the live API.
  */
 export function HomePage() {
   const { t } = useI18n();
+  const navigate = useNavigate();
   const [query, setQuery] = useState('');
-
-  const shelves = useMemo(() => buildShelves(MOCK_BOOK_SUMMARIES), []);
-  const previewBooks = useMemo(
-    () =>
-      [2, 8, 9]
-        .map((id) => MOCK_BOOK_SUMMARIES.find((b) => b.id === id))
-        .filter((b): b is BookSummary => Boolean(b)),
-    [],
-  );
 
   function onSubmit(e: FormEvent) {
     e.preventDefault();
-    // Phase 2 wires this to /api/search and a results route.
+    const q = query.trim();
+    if (q) navigate(`/search?q=${encodeURIComponent(q)}`);
   }
+
+  // Live preview for the "two searches, one answer" tile.
+  const previewQuery = t('why.tile1.query');
+  const { data: preview = [] } = useSearch(previewQuery, 3);
 
   return (
     <>
@@ -92,7 +88,7 @@ export function HomePage() {
                 <button
                   key={key}
                   type="button"
-                  onClick={() => setQuery(t(key))}
+                  onClick={() => navigate(`/search?q=${encodeURIComponent(t(key))}`)}
                   className="rounded-full border border-line px-3 py-1.5 text-caption text-fg-muted transition-colors hover:border-line-strong hover:text-fg"
                 >
                   {t(key)}
@@ -102,7 +98,7 @@ export function HomePage() {
           </Reveal>
         </div>
 
-        {/* Stats strip (design_v3 trust strip, as facts about the product) */}
+        {/* Stats strip */}
         <Reveal delay={300} className="mt-20">
           <ul className="grid grid-cols-2 gap-y-8 border-y border-line py-8 md:grid-cols-4">
             {STATS.map((key, i) => (
@@ -120,24 +116,31 @@ export function HomePage() {
         </Reveal>
       </Section>
 
-      {/* ───────── Genre shelves (solid) ───────── */}
+      {/* ───────── Genre shelves (solid, live API) ───────── */}
       <Section tone="solid" id="genres" className="py-28">
-        <Reveal className="max-w-2xl">
-          <Tag>{t('shelves.eyebrow')}</Tag>
-          <h2 className={`mt-4 ${h2Class}`}>{t('shelves.title')}</h2>
-          <p className="mt-4 text-lead text-fg-muted">{t('shelves.subtitle')}</p>
+        <Reveal className="flex items-end justify-between gap-4">
+          <div className="max-w-2xl">
+            <Tag>{t('shelves.eyebrow')}</Tag>
+            <h2 className={`mt-4 ${h2Class}`}>{t('shelves.title')}</h2>
+            <p className="mt-4 text-lead text-fg-muted">{t('shelves.subtitle')}</p>
+          </div>
+          <Link
+            to="/books"
+            className="hidden shrink-0 items-center gap-1.5 text-body-sm font-medium text-fg-muted transition-colors hover:text-fg sm:inline-flex"
+          >
+            {t('shelves.all')}
+          </Link>
         </Reveal>
 
         <div className="mt-14 flex flex-col gap-14">
-          {shelves.map(({ def, books }) => (
-            <Reveal key={def.id}>
-              <BookShelf
-                id={`shelf-${def.id}`}
-                title={t(`shelf.${def.id}.title`)}
-                subtitle={t(`shelf.${def.id}.subtitle`)}
-                books={books}
-              />
-            </Reveal>
+          {SHELF_DEFS.map((def) => (
+            <GenreShelf
+              key={def.id}
+              domId={`shelf-${def.id}`}
+              genre={def.genre}
+              title={t(`shelf.${def.id}.title`)}
+              subtitle={t(`shelf.${def.id}.subtitle`)}
+            />
           ))}
         </div>
       </Section>
@@ -177,7 +180,7 @@ export function HomePage() {
         </Reveal>
 
         <div className="mt-14 grid gap-4 md:grid-cols-6">
-          {/* Tile 1: hybrid search preview */}
+          {/* Tile 1: hybrid search preview (live) */}
           <Reveal className="md:col-span-4">
             <Card className="flex h-full flex-col gap-6">
               <div>
@@ -187,31 +190,37 @@ export function HomePage() {
               <div className="rounded-xl border border-line bg-nav/60 p-4">
                 <div className="flex items-center gap-2 border-b border-line pb-3 font-mono text-body-sm text-fg">
                   <SearchIcon className="shrink-0 text-fg-subtle" />
-                  <span className="truncate">{t('why.tile1.query')}</span>
+                  <span className="truncate">{previewQuery}</span>
                 </div>
-                <ul>
-                  {previewBooks.map((b, i) => (
-                    <li
-                      key={b.id}
-                      className="flex items-center gap-3 border-b border-line py-3 last:border-b-0 last:pb-0"
-                    >
-                      <span className="w-5 font-mono text-caption text-fg-subtle">0{i + 1}</span>
-                      {b.coverImg && (
-                        <img
-                          src={b.coverImg}
-                          alt=""
-                          loading="lazy"
-                          referrerPolicy="no-referrer"
-                          className="aspect-[2/3] w-8 shrink-0 rounded object-cover ring-1 ring-line"
-                        />
-                      )}
-                      <div className="min-w-0">
-                        <p className="truncate text-body-sm font-medium text-fg">{b.title}</p>
-                        <p className="truncate text-caption text-fg-muted">{b.author}</p>
-                      </div>
-                    </li>
-                  ))}
-                </ul>
+                {preview.length > 0 ? (
+                  <ul>
+                    {preview.map((b, i) => (
+                      <li
+                        key={b.id}
+                        className="flex items-center gap-3 border-b border-line py-3 last:border-b-0 last:pb-0"
+                      >
+                        <span className="w-5 font-mono text-caption text-fg-subtle">0{i + 1}</span>
+                        {b.coverImg && (
+                          <img
+                            src={b.coverImg}
+                            alt=""
+                            loading="lazy"
+                            referrerPolicy="no-referrer"
+                            className="aspect-[2/3] w-8 shrink-0 rounded object-cover ring-1 ring-line"
+                          />
+                        )}
+                        <div className="min-w-0">
+                          <p className="truncate text-body-sm font-medium text-fg">{b.title}</p>
+                          <p className="truncate text-caption text-fg-muted">{b.author}</p>
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className="py-6 text-center text-caption text-fg-subtle">
+                    {t('why.tile1.hint')}
+                  </p>
+                )}
               </div>
             </Card>
           </Reveal>
@@ -242,7 +251,7 @@ export function HomePage() {
             </Card>
           </Reveal>
 
-          {/* Tile 4: one command (design_v3 recessed code field) */}
+          {/* Tile 4: one command */}
           <Reveal delay={90} className="md:col-span-4">
             <Card className="flex h-full flex-col gap-4">
               <h3 className="text-lead font-semibold text-fg">{t('why.tile4.title')}</h3>
@@ -262,9 +271,12 @@ export function HomePage() {
           <h2 className={`text-balance ${h2Class}`}>{t('cta.title')}</h2>
           <p className="mt-4 text-lead text-fg-muted">{t('cta.body')}</p>
           <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
-            <Button size="lg" type="button" title={t('common.soon')}>
-              {t('cta.button')}
-            </Button>
+            <Link
+              to="/books"
+              className="inline-flex h-12 items-center rounded-full bg-accent px-7 text-body font-medium text-accent-ink transition-colors hover:bg-accent-hover"
+            >
+              {t('cta.browse')}
+            </Link>
             <Button size="lg" variant="outline" type="button" title={t('common.soon')}>
               {t('cta.secondary')}
             </Button>

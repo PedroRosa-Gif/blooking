@@ -4,10 +4,10 @@
 Web UI for book discovery, hybrid search and personalized recommendations.
 Talks to the [Blooking backend](../backend) REST API.
 
-> **Status:** Phase 1 — **scaffold**. This sets up the toolchain, design system,
-> typed API layer, auth skeleton, i18n (EN/PT) and a Home page. The Home grid
-> currently renders **sample data** derived from the backend dataset so the app
-> runs without the backend. Feature screens (US01–US11) land in later phases.
+> **Status:** Phase 2 — **discovery**. Search, catalog with filters and the book
+> detail page (US01–US04) run against the live backend API. The backend must be
+> running for data to appear. Auth, favorites and recommendations (US05–US11)
+> land in Phase 3.
 
 ## Tech Stack
 
@@ -21,8 +21,8 @@ Talks to the [Blooking backend](../backend) REST API.
 
 - Node.js **20+** (the repo is developed on Node 22)
 - The backend running on `http://localhost:8080` for live data (see
-  [`apps/backend/README.md`](../backend/README.md)). Not required to start the
-  UI in Phase 1 — the Home page uses sample data.
+  [`apps/backend/README.md`](../backend/README.md)). From Phase 2 on, the UI
+  needs it — book data comes from the API, not from sample data.
 
 ## Running locally
 
@@ -75,15 +75,18 @@ apps/frontend/
     ├── api/                # endpoint fns + React Query hooks + query keys
     ├── auth/               # tokenStore + AuthContext (skeleton; wired in Phase 3)
     ├── theme/              # ThemeProvider (dark default) + useTheme
-    ├── hooks/useReveal.ts  # reveal-on-scroll (IntersectionObserver)
+    ├── hooks/              # useReveal, useInfiniteScroll, useCatalogParams
     ├── i18n/               # lightweight EN/PT translations + provider
-    ├── mocks/books.ts      # sample books extracted from books_sample.csv
     ├── components/
-    │   ├── ui/             # LogoMark, BrandMark, Button, Tag, Card, Icon, BookCard, BookShelf
+    │   ├── ui/             # LogoMark, BrandMark, Button, Tag, Card, Icon, Spinner,
+    │   │                   # BookCard(+Skeleton), BookGrid, BookShelf, StateView
+    │   ├── book/           # GenreShelf, ConstellationFacts, ChipRow
+    │   ├── catalog/        # FilterBar
     │   ├── visual/         # SkyCanvas + Starfield (realistic night sky)
     │   └── layout/         # AnnouncementBar, SiteHeader, SiteFooter, Section, AppLayout,
-    │                       # LanguageSwitcher, ThemeToggle
-    ├── lib/shelves.ts      # genre shelf definitions + grouping
+    │                       # ScrollToTop, LanguageSwitcher, ThemeToggle
+    ├── lib/                # genres (filter + sort options), shelves, cn
+    ├── pages/              # Home, Catalog, Search, BookDetail, NotFound
     └── pages/              # HomePage, NotFoundPage
 ```
 
@@ -169,7 +172,29 @@ then to the raw key.
 
 ## Roadmap
 
-- **Phase 1 (this):** scaffold, design system, API layer, Home with sample data.
-- **Phase 2:** US01–US04 — search, catalog list, filters, book detail (live API).
+- **Phase 1 (done):** scaffold, design system, API layer.
+- **Phase 2 (this):** US01–US04 — search, catalog list + filters, book detail,
+  all against the live API (no more sample data).
 - **Phase 3:** US05–US11 — recommendations, auth, favorites.
 - **Phase 4 (optional):** refresh-token → HttpOnly cookie + CSRF (backend + frontend).
+
+## Routes & data (Phase 2)
+
+| Route        | Screen                | Endpoint                               |
+| :----------- | :-------------------- | :------------------------------------- |
+| `/`          | Home                  | `GET /api/books?genre=` (one per shelf) + a live `GET /api/search` preview |
+| `/search?q=` | Search results (US01) | `GET /api/search?q=&limit=`            |
+| `/books`     | Catalog (US02/US03)   | `GET /api/books` (infinite scroll)     |
+| `/books/:id` | Book detail (US04)    | `GET /api/books/{id}`                  |
+
+Notes:
+
+- **Infinite scroll** via `useInfiniteQuery` + an IntersectionObserver sentinel.
+- **Filters live in the URL** (`?q=&author=&genre=&genre=&sort=`) so the catalog
+  is shareable and works with back/forward.
+- **Genre filter is multi-select in the UI**, but the backend currently accepts a
+  single `genre`, so only the first is sent (see `toBookParams` in `api/books.ts`).
+  A backend change to accept multiple genres is tracked; revisit when backend
+  work resumes.
+- Opening `/books/:id` makes the backend emit a `viewed` interaction event — no
+  frontend action needed.

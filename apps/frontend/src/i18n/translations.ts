@@ -22,6 +22,7 @@ const en: Dict = {
   'nav.home': 'Blooking home',
   'nav.primary': 'Primary',
   'nav.genres': 'Genres',
+  'nav.browse': 'Browse',
   'nav.how': 'How it works',
   'nav.why': 'Why Blooking',
   'nav.login': 'Log in',
@@ -73,6 +74,7 @@ const en: Dict = {
   'shelf.historical.subtitle': 'Stories set in times that shaped us.',
   'shelf.scifi.title': 'Sci-Fi & Dystopia',
   'shelf.scifi.subtitle': 'Futures worth worrying about, and laughing at.',
+  'shelves.all': 'Browse all',
 
   'how.eyebrow': 'How it works',
   'how.title': 'Three steps to your next favorite',
@@ -92,6 +94,7 @@ const en: Dict = {
   'why.tile1.body':
     'Keyword search finds the exact words. Semantic search finds the meaning. Reciprocal Rank Fusion merges both rankings so the right book rises, even when you don’t know its title.',
   'why.tile1.query': 'young wizard at a magic school',
+  'why.tile1.hint': 'Start the backend to see live results here.',
   'why.tile2.title': 'Speaks your language',
   'why.tile2.body': 'Ask in English or Portuguese over the same catalog. No translation step.',
   'why.tile3.title': 'Learns your taste',
@@ -103,10 +106,66 @@ const en: Dict = {
   'cta.title': 'Your reading nights, organized',
   'cta.body': 'Create a free account to save favorites and unlock recommendations.',
   'cta.button': 'Create your account',
+  'cta.browse': 'Browse the catalog',
   'cta.secondary': 'Already have one? Log in',
 
   'card.ratings': '{count} ratings',
   'card.unrated': 'Not yet rated',
+
+  // Catalog (US02/US03)
+  'catalog.title': 'The catalog',
+  'catalog.subtitle': 'Every book on Blooking. Filter by title, author or genre, and sort.',
+  'catalog.filter.q': 'Search title, description…',
+  'catalog.filter.author': 'Author',
+  'catalog.filter.genre': 'Genres',
+  'catalog.sort': 'Sort',
+  'catalog.clear': 'Clear filters',
+  'catalog.results': '{count} books',
+  'catalog.genreNote': 'For now only the first selected genre is applied (backend supports one).',
+  'catalog.end': 'You’ve reached the end.',
+  'catalog.empty.title': 'No books match those filters',
+  'catalog.empty.body': 'Try removing a filter or broadening your search.',
+
+  // Sort options
+  'sort.popular': 'Most rated',
+  'sort.rating': 'Highest rated',
+  'sort.newest': 'Newest',
+  'sort.oldest': 'Oldest',
+  'sort.title': 'Title (A–Z)',
+
+  // Search (US01)
+  'search.title': 'Search',
+  'search.count': '{count} results for “{q}”',
+  'search.prompt.title': 'What are you looking for?',
+  'search.prompt.body': 'Search by title, author, or just the vibe of a book.',
+  'search.empty.title': 'Nothing found for “{q}”',
+  'search.empty.body': 'Try different words, or describe the kind of story you want.',
+
+  // Detail (US04)
+  'detail.back': 'Back to catalog',
+  'detail.by': 'by',
+  'detail.favorite': 'Favorite',
+  'detail.more': 'Find more',
+  'detail.about': 'About this book',
+  'detail.genres': 'Genres',
+  'detail.characters': 'Characters',
+  'detail.awards': 'Awards',
+  'detail.fact.rating': 'Rating',
+  'detail.fact.ratings': 'Ratings',
+  'detail.fact.liked': 'Liked',
+  'detail.fact.year': 'Published',
+  'detail.fact.pages': 'Pages',
+  'detail.fact.format': 'Format',
+  'detail.fact.language': 'Language',
+  'detail.fact.publisher': 'Publisher',
+  'detail.notFound.title': 'Book not found',
+  'detail.notFound.body': 'This title isn’t in the catalog.',
+  'detail.notFound.cta': 'Browse the catalog',
+
+  // Shared states
+  'state.error.title': 'Something went wrong',
+  'state.error.body': 'We couldn’t load this right now.',
+  'state.retry': 'Try again',
 
   'footer.tagline':
     'A night owl for readers. Hybrid search and personalized recommendations for your next book.',
@@ -134,6 +193,7 @@ const pt: Dict = {
   'nav.home': 'Início do Blooking',
   'nav.primary': 'Principal',
   'nav.genres': 'Gêneros',
+  'nav.browse': 'Explorar',
   'nav.how': 'Como funciona',
   'nav.why': 'Por que Blooking',
   'nav.login': 'Entrar',
@@ -185,6 +245,7 @@ const pt: Dict = {
   'shelf.historical.subtitle': 'Histórias de épocas que nos moldaram.',
   'shelf.scifi.title': 'Ficção Científica e Distopia',
   'shelf.scifi.subtitle': 'Futuros para temer, e para rir.',
+  'shelves.all': 'Ver tudo',
 
   'how.eyebrow': 'Como funciona',
   'how.title': 'Três passos até sua próxima leitura',
@@ -204,6 +265,7 @@ const pt: Dict = {
   'why.tile1.body':
     'A busca por palavra-chave acha as palavras exatas. A semântica acha o significado. O Reciprocal Rank Fusion funde os dois rankings para o livro certo subir, mesmo sem você saber o título.',
   'why.tile1.query': 'jovem bruxo numa escola de magia',
+  'why.tile1.hint': 'Suba o backend para ver resultados reais aqui.',
   'why.tile2.title': 'Fala a sua língua',
   'why.tile2.body':
     'Pergunte em português ou inglês sobre o mesmo catálogo. Sem etapa de tradução.',
@@ -217,10 +279,67 @@ const pt: Dict = {
   'cta.title': 'Suas noites de leitura, organizadas',
   'cta.body': 'Crie uma conta gratuita para salvar favoritos e liberar recomendações.',
   'cta.button': 'Criar sua conta',
+  'cta.browse': 'Explorar o catálogo',
   'cta.secondary': 'Já tem conta? Entrar',
 
   'card.ratings': '{count} avaliações',
   'card.unrated': 'Sem avaliações',
+
+  // Catálogo (US02/US03)
+  'catalog.title': 'O catálogo',
+  'catalog.subtitle': 'Todos os livros do Blooking. Filtre por título, autor ou gênero, e ordene.',
+  'catalog.filter.q': 'Buscar título, descrição…',
+  'catalog.filter.author': 'Autor',
+  'catalog.filter.genre': 'Gêneros',
+  'catalog.sort': 'Ordenar',
+  'catalog.clear': 'Limpar filtros',
+  'catalog.results': '{count} livros',
+  'catalog.genreNote':
+    'Por enquanto só o primeiro gênero selecionado é aplicado (o backend aceita um).',
+  'catalog.end': 'Você chegou ao fim.',
+  'catalog.empty.title': 'Nenhum livro com esses filtros',
+  'catalog.empty.body': 'Tente remover um filtro ou ampliar a busca.',
+
+  // Opções de ordenação
+  'sort.popular': 'Mais avaliados',
+  'sort.rating': 'Melhor avaliados',
+  'sort.newest': 'Mais recentes',
+  'sort.oldest': 'Mais antigos',
+  'sort.title': 'Título (A–Z)',
+
+  // Busca (US01)
+  'search.title': 'Busca',
+  'search.count': '{count} resultados para “{q}”',
+  'search.prompt.title': 'O que você procura?',
+  'search.prompt.body': 'Busque por título, autor ou só pelo clima de um livro.',
+  'search.empty.title': 'Nada encontrado para “{q}”',
+  'search.empty.body': 'Tente outras palavras ou descreva o tipo de história que quer.',
+
+  // Detalhe (US04)
+  'detail.back': 'Voltar ao catálogo',
+  'detail.by': 'por',
+  'detail.favorite': 'Favoritar',
+  'detail.more': 'Ver mais',
+  'detail.about': 'Sobre este livro',
+  'detail.genres': 'Gêneros',
+  'detail.characters': 'Personagens',
+  'detail.awards': 'Prêmios',
+  'detail.fact.rating': 'Nota',
+  'detail.fact.ratings': 'Avaliações',
+  'detail.fact.liked': 'Aprovação',
+  'detail.fact.year': 'Publicado',
+  'detail.fact.pages': 'Páginas',
+  'detail.fact.format': 'Formato',
+  'detail.fact.language': 'Idioma',
+  'detail.fact.publisher': 'Editora',
+  'detail.notFound.title': 'Livro não encontrado',
+  'detail.notFound.body': 'Este título não está no catálogo.',
+  'detail.notFound.cta': 'Explorar o catálogo',
+
+  // Estados compartilhados
+  'state.error.title': 'Algo deu errado',
+  'state.error.body': 'Não conseguimos carregar isto agora.',
+  'state.retry': 'Tentar de novo',
 
   'footer.tagline':
     'Uma coruja para leitores. Busca híbrida e recomendações personalizadas para o seu próximo livro.',

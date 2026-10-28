@@ -7,8 +7,9 @@ import { CloseIcon, MenuIcon } from '@/components/ui/Icon';
 import { LanguageSwitcher } from './LanguageSwitcher';
 import { ThemeToggle } from './ThemeToggle';
 
-const NAV_LINKS = [
-  { key: 'nav.genres', href: '/#genres' },
+// `to` is a router route; `href` is a homepage hash anchor (browser-handled).
+const NAV_LINKS: Array<{ key: string; to?: string; href?: string }> = [
+  { key: 'nav.browse', to: '/books' },
   { key: 'nav.how', href: '/#how' },
   { key: 'nav.why', href: '/#why' },
 ];
@@ -46,11 +47,17 @@ export function SiteHeader() {
         </Link>
 
         <nav aria-label={t('nav.primary')} className="hidden items-center gap-1 lg:flex">
-          {NAV_LINKS.map((l) => (
-            <a key={l.key} href={l.href} className={linkClass}>
-              {t(l.key)}
-            </a>
-          ))}
+          {NAV_LINKS.map((l) =>
+            l.to ? (
+              <Link key={l.key} to={l.to} className={linkClass}>
+                {t(l.key)}
+              </Link>
+            ) : (
+              <a key={l.key} href={l.href} className={linkClass}>
+                {t(l.key)}
+              </a>
+            ),
+          )}
         </nav>
 
         <div className="hidden items-center justify-self-end gap-2 lg:flex">
@@ -81,16 +88,18 @@ export function SiteHeader() {
         <div id="mobile-menu" className="border-t border-line bg-nav lg:hidden">
           <div className="mx-auto flex w-full max-w-[1200px] flex-col gap-6 px-6 py-6">
             <nav aria-label={t('nav.primary')} className="flex flex-col">
-              {NAV_LINKS.map((l) => (
-                <a
-                  key={l.key}
-                  href={l.href}
-                  onClick={() => setOpen(false)}
-                  className="border-b border-line py-3 text-lead font-medium text-fg"
-                >
-                  {t(l.key)}
-                </a>
-              ))}
+              {NAV_LINKS.map((l) => {
+                const cls = 'border-b border-line py-3 text-lead font-medium text-fg';
+                return l.to ? (
+                  <Link key={l.key} to={l.to} onClick={() => setOpen(false)} className={cls}>
+                    {t(l.key)}
+                  </Link>
+                ) : (
+                  <a key={l.key} href={l.href} onClick={() => setOpen(false)} className={cls}>
+                    {t(l.key)}
+                  </a>
+                );
+              })}
             </nav>
             <div className="flex items-center gap-2">
               <LanguageSwitcher />

@@ -1,9 +1,5 @@
 import { createContext, useCallback, useContext, useMemo, useState, type ReactNode } from 'react';
-import {
-  LANGUAGES,
-  translations,
-  type Language,
-} from './translations';
+import { LANGUAGES, translations, type Language } from './translations';
 
 const STORAGE_KEY = 'blooking.lang';
 
@@ -31,9 +27,7 @@ function detectInitialLang(): Language {
 
 function interpolate(template: string, vars?: Record<string, string | number>): string {
   if (!vars) return template;
-  return template.replace(/\{(\w+)\}/g, (_, k: string) =>
-    k in vars ? String(vars[k]) : `{${k}}`,
-  );
+  return template.replace(/\{(\w+)\}/g, (_, k: string) => (k in vars ? String(vars[k]) : `{${k}}`));
 }
 
 export function I18nProvider({ children }: { children: ReactNode }) {
