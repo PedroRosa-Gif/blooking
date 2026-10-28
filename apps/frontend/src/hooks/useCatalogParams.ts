@@ -4,11 +4,14 @@ import type { BookFilters } from '@/api/books';
 import { DEFAULT_SORT } from '@/lib/genres';
 
 /**
- * Reads/writes the catalog filters from the URL query string, so the catalog is
- * shareable and survives back/forward. Genres are a repeated `genre` param.
+ * Catalog filters, kept in the URL so the catalog is shareable and survives
+ * back/forward. Genres are a repeated `genre` param.
+ *
+ * There is deliberately no free-text field here: searching by words is the job
+ * of the Search page (hybrid semantic + keyword). The catalog is for browsing
+ * with structured filters (genre, author, sort).
  */
 export interface CatalogState extends BookFilters {
-  q: string;
   author: string;
   genres: string[];
   sort: string;
@@ -19,7 +22,6 @@ export function useCatalogParams() {
 
   const state = useMemo<CatalogState>(
     () => ({
-      q: searchParams.get('q') ?? '',
       author: searchParams.get('author') ?? '',
       genres: searchParams.getAll('genre'),
       sort: searchParams.get('sort') ?? DEFAULT_SORT,
@@ -32,12 +34,11 @@ export function useCatalogParams() {
       setSearchParams(
         (prev) => {
           const next = new URLSearchParams(prev);
-          const apply = (key: string, value?: string) => {
-            if (value && value.trim()) next.set(key, value.trim());
-            else next.delete(key);
-          };
-          if ('q' in patch) apply('q', patch.q);
-          if ('author' in patch) apply('author', patch.author);
+          if ('author' in patch) {
+            const v = patch.author?.trim();
+            if (v) next.set('author', v);
+            else next.delete('author');
+          }
           if ('sort' in patch) {
             if (patch.sort && patch.sort !== DEFAULT_SORT) next.set('sort', patch.sort);
             else next.delete('sort');
@@ -66,8 +67,7 @@ export function useCatalogParams() {
 
   const clear = useCallback(() => setSearchParams({}, { replace: true }), [setSearchParams]);
 
-  const hasFilters =
-    state.q !== '' || state.author !== '' || state.genres.length > 0 || state.sort !== DEFAULT_SORT;
+  const hasFilters = state.author !== '' || state.genres.length > 0 || state.sort !== DEFAULT_SORT;
 
   return { state, update, toggleGenre, clear, hasFilters };
 }

@@ -1,6 +1,6 @@
 import { Routes, Route } from 'react-router-dom';
 import { AppLayout } from '@/components/layout/AppLayout';
-import { ScrollToTop } from '@/components/layout/ScrollToTop';
+import { ScrollManager } from '@/components/layout/ScrollManager';
 import { HomePage } from '@/pages/HomePage';
 import { CatalogPage } from '@/pages/CatalogPage';
 import { SearchPage } from '@/pages/SearchPage';
@@ -10,7 +10,7 @@ import { NotFoundPage } from '@/pages/NotFoundPage';
 export default function App() {
   return (
     <AppLayout>
-      <ScrollToTop />
+      <ScrollManager />
       <Routes>
         <Route path="/" element={<HomePage />} />
         <Route path="/search" element={<SearchPage />} />

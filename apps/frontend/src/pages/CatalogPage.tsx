@@ -1,4 +1,5 @@
 import { useMemo } from 'react';
+import { Navigate, useSearchParams } from 'react-router-dom';
 import { useI18n } from '@/i18n/I18nProvider';
 import { useInfiniteBooks } from '@/api/hooks';
 import { useCatalogParams } from '@/hooks/useCatalogParams';
@@ -12,14 +13,27 @@ import { EmptyState, ErrorState } from '@/components/ui/StateView';
 import { Spinner } from '@/components/ui/Spinner';
 import { BookOpenIcon } from '@/components/ui/Icon';
 
-/** US02 + US03 — full catalog with filters and infinite scroll. */
+/**
+ * US02 + US03 — browse the whole catalog with structured filters and infinite
+ * scroll. Free-text search is on the Search page; an old link that still carries
+ * `?q=` is sent there instead of silently ignoring the text.
+ */
 export function CatalogPage() {
+  const [params] = useSearchParams();
+  const legacyQuery = params.get('q')?.trim();
+  if (legacyQuery) {
+    return <Navigate to={`/search?q=${encodeURIComponent(legacyQuery)}`} replace />;
+  }
+  return <CatalogView />;
+}
+
+function CatalogView() {
   const { t } = useI18n();
   const { state, update, toggleGenre, clear, hasFilters } = useCatalogParams();
 
   const filters = useMemo(
-    () => ({ q: state.q, author: state.author, genres: state.genres, sort: state.sort }),
-    [state.q, state.author, state.genres, state.sort],
+    () => ({ author: state.author, genres: state.genres, sort: state.sort }),
+    [state.author, state.genres, state.sort],
   );
 
   const {
@@ -47,7 +61,7 @@ export function CatalogPage() {
   });
 
   return (
-    <Section tone="sky" className="pb-28 pt-28">
+    <Section tone="sky" className="pb-28 pt-24">
       <header className="mb-10">
         <h1 className="text-4xl font-semibold tracking-[-0.035em] sm:text-headline">
           {t('catalog.title')}
@@ -85,10 +99,10 @@ export function CatalogPage() {
 
             <div ref={sentinelRef} aria-hidden="true" className="h-px" />
 
-            <div className="mt-10 flex justify-center">
+            <div className="mt-10 flex min-h-8 justify-center">
               {isFetchingNextPage ? (
                 <Spinner />
-              ) : !hasNextPage && books.length > 0 ? (
+              ) : !hasNextPage ? (
                 <p className="font-mono text-caption text-fg-subtle">{t('catalog.end')}</p>
               ) : null}
             </div>

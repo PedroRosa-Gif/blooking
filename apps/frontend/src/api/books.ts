@@ -1,5 +1,6 @@
 import { api } from '@/lib/axios';
-import type { BookDetail, BookSummary, Page } from '@/types/api';
+import { normalizePage } from '@/lib/page';
+import type { BookDetail, BookSummary, Page, RawPage } from '@/types/api';
 
 /** Filters for the catalog. `genres` is an array in the UI; see note below. */
 export interface BookFilters {
@@ -50,10 +51,10 @@ export function toBookParams(params: BookListParams): BookQueryParams {
 
 /** `GET /api/books` — paginated catalog with optional filters. */
 export async function getBooks(params: BookListParams = {}): Promise<Page<BookSummary>> {
-  const { data } = await api.get<Page<BookSummary>>('/api/books', {
+  const { data } = await api.get<RawPage<BookSummary>>('/api/books', {
     params: toBookParams(params),
   });
-  return data;
+  return normalizePage(data);
 }
 
 /** `GET /api/books/{id}` — full detail (also fires a backend "viewed" event). */

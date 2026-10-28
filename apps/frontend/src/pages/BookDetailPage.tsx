@@ -1,29 +1,51 @@
-import { useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { useState, type ReactNode } from 'react';
+import { Link, useLocation, useParams } from 'react-router-dom';
 import { useI18n } from '@/i18n/I18nProvider';
 import { useBook } from '@/api/hooks';
 import { getApiErrorStatus } from '@/lib/apiError';
+import { displayAuthors } from '@/lib/authors';
+import { bookSections } from '@/lib/bookSections';
 import { Section } from '@/components/layout/Section';
-import { Button } from '@/components/ui/Button';
+import { BackLink } from '@/components/ui/BackLink';
+import { Button, buttonClasses } from '@/components/ui/Button';
 import { Spinner } from '@/components/ui/Spinner';
 import { ErrorState } from '@/components/ui/StateView';
-import { ArrowRightIcon, ChevronLeftIcon, HeartIcon } from '@/components/ui/Icon';
-import { ConstellationFacts } from '@/components/book/ConstellationFacts';
+import { HeartIcon } from '@/components/ui/Icon';
+import { AwardsSection } from '@/components/book/AwardsSection';
 import { ChipRow } from '@/components/book/ChipRow';
+import { ConstellationFacts } from '@/components/book/ConstellationFacts';
+import { Description } from '@/components/book/Description';
+import {
+  MoreByAuthor,
+  MoreInGenre,
+  hasEnough,
+  useMoreByAuthor,
+  useMoreInGenre,
+} from '@/components/book/RelatedShelves';
+import { SectionNav } from '@/components/book/SectionNav';
+import type { BookDetail } from '@/types/api';
 
-/** US04 — book detail. Nocturnal "constellation" layout. */
+/** A titled block of the page, addressable by the section nav. */
+function Block({ id, title, children }: { id: string; title: string; children: ReactNode }) {
+  return (
+    <section id={id} className="scroll-mt-32">
+      <h2 className="font-mono text-caption uppercase tracking-wider text-fg-subtle">{title}</h2>
+      <div className="mt-5">{children}</div>
+    </section>
+  );
+}
+
+/** US04 — book detail. Nocturnal "constellation" layout with in-page navigation. */
 export function BookDetailPage() {
   const { t } = useI18n();
   const { id } = useParams();
   const numericId = Number(id);
   const { data: book, isLoading, isError, error, refetch } = useBook(numericId);
 
-  const [coverFailed, setCoverFailed] = useState(false);
-
   if (!Number.isFinite(numericId) || numericId <= 0) {
     return (
       <Section tone="sky" className="py-32">
-        <NotFound t={t} />
+        <NotFound />
       </Section>
     );
   }
@@ -40,31 +62,36 @@ export function BookDetailPage() {
     const status = getApiErrorStatus(error);
     return (
       <Section tone="sky" className="py-32">
-        {status === 404 ? (
-          <NotFound t={t} />
-        ) : (
-          <ErrorState error={error} onRetry={() => refetch()} />
-        )}
+        {status === 404 ? <NotFound /> : <ErrorState error={error} onRetry={() => refetch()} />}
       </Section>
     );
   }
 
+  return <BookContent key={book.id} book={book} />;
+}
+
+function BookContent({ book }: { book: BookDetail }) {
+  const { t } = useI18n();
+  const location = useLocation();
+  const [coverFailed, setCoverFailed] = useState(false);
+
+  const byAuthor = useMoreByAuthor(book);
+  const inGenre = useMoreInGenre(book);
+  const sections = bookSections(book, {
+    hasMoreByAuthor: hasEnough(byAuthor),
+    hasMoreInGenre: Boolean(inGenre.genre) && hasEnough(inGenre.books),
+  });
+
   const showCover = Boolean(book.coverImg) && !coverFailed;
+  const credits = displayAuthors(book.author);
 
   return (
     <Section tone="sky" className="pb-28 pt-24">
-      <Link
-        to="/books"
-        className="inline-flex items-center gap-1.5 text-body-sm text-fg-muted transition-colors hover:text-fg"
-      >
-        <ChevronLeftIcon />
-        {t('detail.back')}
-      </Link>
+      <BackLink />
 
       {/* Hero: glowing cover + title block */}
       <div className="mt-8 grid gap-10 md:grid-cols-[minmax(0,260px)_1fr] md:gap-14">
         <div className="relative mx-auto w-48 shrink-0 sm:w-56 md:mx-0 md:w-full">
-          {/* amber aura behind the cover */}
           <div
             aria-hidden="true"
             className="absolute -inset-6 -z-10 rounded-full opacity-70 blur-2xl"
@@ -96,12 +123,12 @@ export function BookDetailPage() {
               {book.series}
             </p>
           )}
-          <h1 className="mt-2 text-4xl font-semibold tracking-[-0.035em] sm:text-5xl">
+          <h1 className="mt-2 text-balance text-4xl font-semibold tracking-[-0.035em] sm:text-5xl">
             {book.title}
           </h1>
-          {book.author && (
+          {credits && (
             <p className="mt-3 text-lead text-fg-muted">
-              {t('detail.by')} <span className="text-fg">{book.author}</span>
+              {t('detail.by')} <span className="text-fg">{credits}</span>
             </p>
           )}
 
@@ -112,43 +139,58 @@ export function BookDetailPage() {
             </Button>
             <Link
               to="/books"
-              className="inline-flex h-10 items-center gap-1.5 rounded-full border border-line px-5 text-body-sm font-medium text-fg-muted transition-colors hover:border-line-strong hover:text-fg"
+              state={{ from: `${location.pathname}${location.search}` }}
+              className={buttonClasses({ variant: 'outline' })}
             >
-              {t('detail.more')}
-              <ArrowRightIcon />
+              {t('detail.browse')}
             </Link>
           </div>
 
-          {/* Constellation of facts */}
           <div className="mt-10 border-t border-line pt-8">
             <ConstellationFacts book={book} />
           </div>
         </div>
       </div>
 
-      {/* Description */}
-      {book.description && (
-        <div className="mt-16 max-w-3xl">
-          <h2 className="font-mono text-caption uppercase tracking-wider text-fg-subtle">
-            {t('detail.about')}
-          </h2>
-          <p className="mt-4 whitespace-pre-line text-body-lg leading-relaxed text-fg/90">
-            {book.description}
-          </p>
-        </div>
-      )}
+      {/* In-page navigation */}
+      <div className="mt-14">
+        <SectionNav sections={sections} />
+      </div>
 
-      {/* Chip rows */}
-      <div className="mt-14 flex flex-col gap-10">
-        <ChipRow label={t('detail.genres')} items={book.genres} linkGenre />
-        <ChipRow label={t('detail.characters')} items={book.characters} />
-        <ChipRow label={t('detail.awards')} items={book.awards} />
+      <div className="mt-12 flex flex-col gap-16">
+        <Block id="about" title={t('detail.about')}>
+          <Description text={book.description} />
+          {book.genres.length > 0 && (
+            <div className="mt-8">
+              <h3 className="mb-3 font-mono text-caption uppercase tracking-wider text-fg-subtle">
+                {t('detail.genres')}
+              </h3>
+              <ChipRow items={book.genres} linkGenre />
+            </div>
+          )}
+        </Block>
+
+        {book.awards.length > 0 && (
+          <Block id="awards" title={t('detail.awards')}>
+            <AwardsSection awards={book.awards} />
+          </Block>
+        )}
+
+        {book.characters.length > 0 && (
+          <Block id="characters" title={t('detail.characters')}>
+            <ChipRow items={book.characters} />
+          </Block>
+        )}
+
+        <MoreByAuthor book={book} />
+        <MoreInGenre book={book} />
       </div>
     </Section>
   );
 }
 
-function NotFound({ t }: { t: ReturnType<typeof useI18n>['t'] }) {
+function NotFound() {
+  const { t } = useI18n();
   return (
     <div className="flex min-h-[40vh] flex-col items-center justify-center text-center">
       <p className="font-mono text-title text-accent">404</p>
@@ -156,10 +198,7 @@ function NotFound({ t }: { t: ReturnType<typeof useI18n>['t'] }) {
         {t('detail.notFound.title')}
       </h1>
       <p className="mt-3 text-lead text-fg-muted">{t('detail.notFound.body')}</p>
-      <Link
-        to="/books"
-        className="mt-8 inline-flex h-11 items-center rounded-full bg-accent px-6 text-body-sm font-medium text-accent-ink"
-      >
+      <Link to="/books" className={buttonClasses({ size: 'lg', className: 'mt-8' })}>
         {t('detail.notFound.cta')}
       </Link>
     </div>

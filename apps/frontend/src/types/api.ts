@@ -10,41 +10,39 @@
  * Pagination
  * ------------------------------------------------------------------ */
 
-/** Spring Data "sort" descriptor as serialized in the legacy Page JSON. */
-export interface SpringSort {
-  empty: boolean;
-  sorted: boolean;
-  unsorted: boolean;
-}
-
-/** Spring Data "pageable" descriptor as serialized in the legacy Page JSON. */
-export interface SpringPageable {
-  pageNumber: number;
-  pageSize: number;
-  sort: SpringSort;
-  offset: number;
-  paged: boolean;
-  unpaged: boolean;
-}
-
 /**
- * Legacy Spring `Page<T>` JSON envelope.
- *
- * Returned directly (not wrapped) by `GET /api/books` and `GET /api/favorites`.
- * `number` is the 0-based current page index.
+ * Page envelope as the backend sends it. The backend sets
+ * `spring.data.web.pageable.serialization-mode: via_dto`, so it sends the
+ * `page` object below. The older flat shape (`number`, `totalElements`, `last`
+ * at the top level) is accepted too, so a config change cannot break paging.
+ * Never read these fields directly: go through `normalizePage` (lib/page.ts).
  */
+export interface RawPage<T> {
+  content: T[];
+  /** via_dto shape */
+  page?: {
+    size: number;
+    number: number;
+    totalElements: number;
+    totalPages: number;
+  };
+  /** legacy shape */
+  number?: number;
+  size?: number;
+  totalElements?: number;
+  totalPages?: number;
+  last?: boolean;
+}
+
+/** The one page shape the app uses. `number` is the 0-based page index. */
 export interface Page<T> {
   content: T[];
-  pageable: SpringPageable;
-  last: boolean;
+  number: number;
+  size: number;
   totalElements: number;
   totalPages: number;
-  first: boolean;
-  size: number;
-  number: number;
-  sort: SpringSort;
-  numberOfElements: number;
-  empty: boolean;
+  /** True when there is no page after this one. */
+  last: boolean;
 }
 
 /* ------------------------------------------------------------------ *

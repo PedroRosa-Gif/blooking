@@ -1,7 +1,7 @@
 import { useState, type FormEvent } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useI18n } from '@/i18n/I18nProvider';
-import { useSearch } from '@/api/hooks';
+import { useSearchPreview } from '@/api/hooks';
 import { SHELF_DEFS } from '@/lib/shelves';
 import { Section } from '@/components/layout/Section';
 import { Button } from '@/components/ui/Button';
@@ -36,7 +36,7 @@ export function HomePage() {
 
   // Live preview for the "two searches, one answer" tile.
   const previewQuery = t('why.tile1.query');
-  const { data: preview = [] } = useSearch(previewQuery, 3);
+  const { data: preview = [] } = useSearchPreview(previewQuery, 3);
 
   return (
     <>
