@@ -1,4 +1,5 @@
 # Blooking — Frontend
+# Blooking — Frontend
 
 Web UI for book discovery, hybrid search and personalized recommendations.
 Talks to the [Blooking backend](../backend) REST API.
@@ -61,11 +62,11 @@ apps/frontend/
 ├── tsconfig*.json
 ├── eslint.config.js / .prettierrc.json
 ├── .env.example            # VITE_API_BASE_URL
-├── design.md               # "Portrait" design system reference (source of the tokens)
+├── styles_plans/           # design reference docs (design_v1, design_v2 — see below)
 └── src/
-    ├── main.tsx            # providers: QueryClient → I18n → Auth → Router
+    ├── main.tsx            # providers: Theme → QueryClient → I18n → Auth → Router
     ├── App.tsx             # route table
-    ├── styles/index.css    # Tailwind v4 @theme — design tokens from design.md
+    ├── styles/index.css    # Tailwind v4 @theme + semantic theme tokens (dark/light)
     ├── types/api.ts        # TS mirror of the backend contract (Page<T>, BookSummary, …)
     ├── lib/
     │   ├── axios.ts        # Axios instance (withCredentials, Bearer interceptor)
@@ -73,27 +74,48 @@ apps/frontend/
     │   └── queryClient.ts
     ├── api/                # endpoint fns + React Query hooks + query keys
     ├── auth/               # tokenStore + AuthContext (skeleton; wired in Phase 3)
+    ├── theme/              # ThemeProvider (dark default) + useTheme
+    ├── hooks/useReveal.ts  # reveal-on-scroll (IntersectionObserver)
     ├── i18n/               # lightweight EN/PT translations + provider
     ├── mocks/books.ts      # sample books extracted from books_sample.csv
     ├── components/
-    │   ├── ui/             # BrandMark, Button, Pill, BookCard
-    │   └── layout/         # PillNav, AppLayout, LanguageSwitcher
+    │   ├── ui/             # OwlLogo, BrandMark, Button, Pill, BookCard
+    │   ├── visual/         # Starfield (animated night sky)
+    │   └── layout/         # PillNav, AppLayout, LanguageSwitcher, ThemeToggle
     └── pages/              # HomePage, NotFoundPage
 ```
 
-## Design system
+## Design system — "Nightjar"
 
-The visual language follows [`design.md`](./design.md) (the "Portrait" system):
-a near-white canvas, a single deep-navy ink (`#08304c`) for text and structural
-lines, and a **reserved** rainbow gradient used only as the Sign-up CTA border,
-one italicized word per headline, and the small brand swatch. Two type voices —
-**Inter** (body/UI, substituting Switzer) and **Plus Jakarta Sans** (display,
-substituting Basier Circle). Tokens live as Tailwind v4 `@theme` custom
-properties in `src/styles/index.css`.
+A **dark-first, nocturnal** theme built around the Blooking brand: a night owl
+with a magnifier (search). The owl is a night creature, so the default canvas is
+a **night sky** — a vertical gradient from deep blue to near-black with an
+animated star field — and the single accent color is a warm **amber** (`#e8b059`,
+like an owl's eyes under a reading lamp). Type pairs **Inter** (body/UI) with a
+literary serif, **Cormorant Garamond**, for headlines.
 
-Substitutions (vs. the commercial fonts named in `design.md`) and domain
-adaptations (Blooking wordmark, product announcement, book-search hero) are
-intentional; the doc is used as a design *base*, not followed literally.
+The two reference docs in [`styles_plans/`](./styles_plans) inform it (lower
+version number = higher priority): `design_v1` ("Portrait") contributes the
+quiet-frame structure, floating pill nav and card language; `design_v2` ("Cora")
+contributes the full-bleed sky-as-canvas and scroll narrative. Neither is a dark
+theme, so the palette is an original derivation; the project's own direction
+(owl brand, amber accent replacing the rainbow/berry accents, starry hero with
+books fading in on scroll) takes precedence. Tokens live as Tailwind v4 `@theme`
+properties plus semantic theme variables (`--bg`, `--surface`, `--text`,
+`--accent`, …) in `src/styles/index.css`.
+
+## Theming (dark / light)
+
+- **Dark is the default.** `ThemeProvider` resolves the initial theme from a
+  stored choice, else the OS preference (falling back to dark), and sets
+  `data-theme` on `<html>`. An inline script in `index.html` applies it before
+  first paint to avoid a flash.
+- A **moon/sun toggle** in the nav switches themes; the choice persists in
+  `localStorage`.
+- Flipping themes only swaps the semantic variable block — components read
+  `var(--bg)` / `var(--text)` / `var(--accent)` etc., never raw palette colors.
+- Motion (star twinkle, scroll reveals) is disabled under
+  `prefers-reduced-motion`.
 
 ## API contract
 

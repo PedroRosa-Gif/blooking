@@ -4,42 +4,42 @@ import { BrandMark } from '@/components/ui/BrandMark';
 import { Button } from '@/components/ui/Button';
 import { Pill } from '@/components/ui/Pill';
 import { LanguageSwitcher } from './LanguageSwitcher';
+import { ThemeToggle } from './ThemeToggle';
 
 /**
- * Floating sticky pill navigation.
- *
- * Adapted from the design's "Floating Pill Nav" to the Blooking domain: brand
- * mark + a product announcement pill (hybrid search) in the center, and
- * language switch + Login (ghost) + Sign up (rainbow CTA) on the right.
- * Auth routes don't exist yet (Phase 3) so those actions are inert for now.
+ * Floating sticky pill nav. Semi-transparent over the night sky with a blur so
+ * the starfield shows through faintly. Brand mark (owl + magnifier) left,
+ * product announcement center, controls + auth actions right. Auth routes
+ * arrive in Phase 3, so Login/Sign up are inert for now.
  */
 export function PillNav() {
   const { t } = useI18n();
 
   return (
     <div className="sticky top-[var(--spacing-16)] z-50 flex justify-center px-[var(--spacing-16)]">
-      <nav className="flex w-full max-w-[1120px] items-center justify-between gap-[var(--spacing-16)] rounded-[var(--radius-nav)] bg-[var(--color-white-canvas)] px-[var(--spacing-20)] py-[var(--spacing-12)] shadow-[var(--shadow-float)]">
+      <nav className="flex w-full max-w-[1120px] items-center justify-between gap-[var(--spacing-16)] rounded-[var(--radius-nav)] border border-[var(--hairline)] bg-[color-mix(in_srgb,var(--surface)_80%,transparent)] px-[var(--spacing-20)] py-[var(--spacing-12)] shadow-[var(--shadow-float)] backdrop-blur-md">
         <Link to="/" aria-label={t('nav.brand')}>
           <BrandMark label={t('nav.brand')} />
         </Link>
 
-        <div className="hidden items-center gap-[var(--spacing-8)] md:flex">
-          <Pill tone="sky" uppercase>
+        <div className="hidden items-center gap-[var(--spacing-8)] lg:flex">
+          <Pill tone="accent" uppercase>
             New
           </Pill>
-          <span className="text-[var(--text-caption)] text-[var(--color-slate-helper)]">
+          <span className="text-[var(--text-body-sm)] text-[var(--text-muted)]">
             {t('nav.announcement')}
           </span>
         </div>
 
-        <div className="flex items-center gap-[var(--spacing-12)]">
+        <div className="flex items-center gap-[var(--spacing-8)]">
+          <ThemeToggle />
           <LanguageSwitcher />
           <span className="hidden sm:inline">
             <Button variant="ghost" type="button" disabled title="Coming soon">
               {t('nav.login')}
             </Button>
           </span>
-          <Button variant="rainbow" type="button" disabled title="Coming soon">
+          <Button variant="accent" type="button" disabled title="Coming soon">
             {t('nav.signup')}
           </Button>
         </div>

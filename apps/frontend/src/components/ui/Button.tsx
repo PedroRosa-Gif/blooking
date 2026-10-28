@@ -1,6 +1,6 @@
 import type { ButtonHTMLAttributes, ReactNode } from 'react';
 
-type Variant = 'rainbow' | 'ghost' | 'ink';
+type Variant = 'accent' | 'outline' | 'ghost';
 
 interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: Variant;
@@ -8,32 +8,32 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 }
 
 /**
- * Button primitives from the design system:
- *  - `rainbow`: the single rainbow-outlined pill CTA (sign up / primary action).
- *  - `ghost`:   text-only secondary action (login, inline links).
- *  - `ink`:     a quiet solid-ink pill for in-page actions (search, submit).
+ * Button primitives (pill shaped, per design_v2).
+ *  - `accent`:  the single amber filled CTA (sign up / primary conversion).
+ *  - `outline`: amber-outlined secondary action, stays visible on the sky.
+ *  - `ghost`:   text-only tertiary action (login, inline links).
  *
- * Per the design rules there are NO filled colored buttons; the rainbow is a
- * 1.5px border only, and body/label text never uses the gradient fill.
+ * The amber accent replaces the old rainbow entirely — it's the one chromatic
+ * action color in the system.
  */
 const base =
   'inline-flex items-center justify-center gap-[var(--spacing-8)] rounded-[var(--radius-buttons)] ' +
-  'font-medium transition-[transform,opacity,background-color] duration-150 ' +
-  'disabled:cursor-not-allowed disabled:opacity-50 active:translate-y-px';
+  'font-medium transition-[background-color,color,box-shadow,transform] duration-150 ' +
+  'disabled:cursor-not-allowed disabled:opacity-45 active:translate-y-px';
 
 const variants: Record<Variant, string> = {
-  rainbow:
-    'border-rainbow bg-[var(--color-white-canvas)] text-[var(--color-portrait-ink)] ' +
-    'px-[var(--spacing-20)] py-[var(--spacing-12)] text-[var(--text-body)] hover:bg-[var(--color-sky-wash)]',
+  accent:
+    'bg-[var(--accent)] text-[var(--accent-ink)] px-[var(--spacing-24)] py-[var(--spacing-12)] ' +
+    'text-[var(--text-body)] hover:bg-[var(--accent-hover)] hover:shadow-[var(--shadow-accent-glow)]',
+  outline:
+    'bg-transparent text-[var(--accent)] border border-[var(--accent)] ' +
+    'px-[var(--spacing-24)] py-[var(--spacing-12)] text-[var(--text-body)] hover:bg-[color-mix(in_srgb,var(--accent)_12%,transparent)]',
   ghost:
-    'bg-transparent text-[var(--color-portrait-ink)] px-[var(--spacing-12)] py-[var(--spacing-8)] ' +
-    'text-[var(--text-body)] hover:text-[var(--color-nautical-teal)]',
-  ink:
-    'bg-[var(--color-portrait-ink)] text-[var(--color-white-canvas)] ' +
-    'px-[var(--spacing-24)] py-[var(--spacing-12)] text-[var(--text-body)] hover:opacity-90',
+    'bg-transparent text-[var(--text)] px-[var(--spacing-16)] py-[var(--spacing-8)] ' +
+    'text-[var(--text-body)] hover:text-[var(--accent)]',
 };
 
-export function Button({ variant = 'ink', className = '', children, ...rest }: ButtonProps) {
+export function Button({ variant = 'accent', className = '', children, ...rest }: ButtonProps) {
   return (
     <button className={`${base} ${variants[variant]} ${className}`} {...rest}>
       {children}

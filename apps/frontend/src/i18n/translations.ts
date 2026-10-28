@@ -22,16 +22,18 @@ type Dict = Record<string, string>;
 
 const en: Dict = {
   'nav.brand': 'Blooking',
-  'nav.announcement': 'New — hybrid semantic + keyword search',
+  'nav.announcement': 'Hybrid semantic + keyword search',
   'nav.home': 'Home',
   'nav.login': 'Login',
   'nav.signup': 'Sign up',
   'nav.language': 'Language',
+  'theme.toDark': 'Switch to dark mode',
+  'theme.toLight': 'Switch to light mode',
 
-  'hero.eyebrow': 'Discover your next read',
-  'hero.title.pre': 'Find the book you’ll',
-  'hero.title.accent': 'love',
-  'hero.title.post': 'with search that just gets you.',
+  'hero.eyebrow': 'A night owl for readers',
+  'hero.title.pre': 'Find the book you’ll read',
+  'hero.title.accent': 'all night',
+  'hero.title.post': 'long.',
   'hero.subtitle':
     'Blooking blends semantic and keyword search over thousands of books, then recommends titles tuned to your taste.',
   'hero.search.placeholder': 'Search by title, author, mood or idea…',
@@ -55,11 +57,13 @@ const pt: Dict = {
   'nav.login': 'Entrar',
   'nav.signup': 'Criar conta',
   'nav.language': 'Idioma',
+  'theme.toDark': 'Mudar para o modo escuro',
+  'theme.toLight': 'Mudar para o modo claro',
 
-  'hero.eyebrow': 'Descubra sua próxima leitura',
-  'hero.title.pre': 'Encontre o livro que você vai',
-  'hero.title.accent': 'amar',
-  'hero.title.post': 'com uma busca que entende você.',
+  'hero.eyebrow': 'Uma coruja para leitores',
+  'hero.title.pre': 'Encontre o livro que você vai ler a',
+  'hero.title.accent': 'noite inteira',
+  'hero.title.post': '.',
   'hero.subtitle':
     'O Blooking combina busca semântica e por palavra-chave em milhares de livros e recomenda títulos no seu gosto.',
   'hero.search.placeholder': 'Busque por título, autor, clima ou ideia…',
