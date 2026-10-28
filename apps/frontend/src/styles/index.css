@@ -94,10 +94,6 @@
   --radius-images: 16px;
   --radius-inputs: 9999px;
   --radius-buttons: 9999px;
-
-  /* ---- Animation ---- */
-  --animate-twinkle: twinkle 4s ease-in-out infinite;
-  --animate-drift: drift 120s linear infinite;
 }
 
 /*
@@ -243,22 +239,4 @@
   }
 }
 
-/* ---- Keyframes ---- */
-@keyframes twinkle {
-  0%,
-  100% {
-    opacity: 0.25;
-  }
-  50% {
-    opacity: 1;
-  }
-}
 
-@keyframes drift {
-  from {
-    transform: translateY(0);
-  }
-  to {
-    transform: translateY(-40px);
-  }
-}

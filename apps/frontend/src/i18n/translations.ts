@@ -40,8 +40,35 @@ const en: Dict = {
   'hero.search.button': 'Search',
   'hero.search.hint': 'Try “young wizard at a magic school” or “distopia jovens”.',
 
+  'hero.scroll': 'Scroll to explore',
+
+  'how.eyebrow': 'How it works',
+  'how.title': 'Three steps to your next favorite',
+  'how.step1.title': 'Search in your words',
+  'how.step1.body':
+    'Type a title, an author, or just a feeling. Hybrid search reads meaning and keywords alike — in English or Portuguese.',
+  'how.step2.title': 'Discover the details',
+  'how.step2.body':
+    'Open any book for its synopsis, genres, ratings and more — everything you need to decide what to read next.',
+  'how.step3.title': 'Build your shelf',
+  'how.step3.body':
+    'Favorite the books you love. Blooking learns your taste and recommends titles that fit it.',
+
+  'feature.eyebrow': 'Why Blooking',
+  'feature.title': 'Search that understands, not just matches',
+  'feature.body':
+    'Most catalogs only match the words you type. Blooking also reads meaning with semantic search, then fuses both rankings so the right book surfaces — even when you don’t know its title.',
+  'feature.point1': 'Semantic + keyword, fused with Reciprocal Rank Fusion',
+  'feature.point2': 'Multilingual — ask in English or Portuguese',
+  'feature.point3': 'Personalized recommendations from your favorites',
+
   'section.popular.title': 'Popular on Blooking',
   'section.popular.subtitle': 'A handful of favorites to get you started.',
+
+  'cta.title': 'Your reading nights, organized',
+  'cta.body': 'Create a free account to save favorites and unlock recommendations.',
+  'cta.button': 'Create your account',
+  'cta.secondary': 'Already have one? Log in',
 
   'card.ratings': '{count} ratings',
   'card.unrated': 'Not yet rated',
@@ -70,8 +97,35 @@ const pt: Dict = {
   'hero.search.button': 'Buscar',
   'hero.search.hint': 'Tente “jovem bruxo numa escola de magia” ou “dystopian teens”.',
 
+  'hero.scroll': 'Role para explorar',
+
+  'how.eyebrow': 'Como funciona',
+  'how.title': 'Três passos até sua próxima leitura',
+  'how.step1.title': 'Busque com suas palavras',
+  'how.step1.body':
+    'Digite um título, um autor ou só uma sensação. A busca híbrida entende significado e palavras-chave — em português ou inglês.',
+  'how.step2.title': 'Descubra os detalhes',
+  'how.step2.body':
+    'Abra qualquer livro para ver sinopse, gêneros, avaliações e mais — tudo para decidir o que ler a seguir.',
+  'how.step3.title': 'Monte sua estante',
+  'how.step3.body':
+    'Favorite os livros que você ama. O Blooking aprende seu gosto e recomenda títulos com a sua cara.',
+
+  'feature.eyebrow': 'Por que Blooking',
+  'feature.title': 'Uma busca que entende, não só compara',
+  'feature.body':
+    'A maioria dos catálogos só casa as palavras que você digita. O Blooking também lê o significado com busca semântica e funde os dois rankings para o livro certo aparecer — mesmo sem saber o título.',
+  'feature.point1': 'Semântica + palavra-chave, fundidas com Reciprocal Rank Fusion',
+  'feature.point2': 'Multilíngue — pergunte em português ou inglês',
+  'feature.point3': 'Recomendações personalizadas a partir dos seus favoritos',
+
   'section.popular.title': 'Populares no Blooking',
   'section.popular.subtitle': 'Alguns favoritos para você começar.',
+
+  'cta.title': 'Suas noites de leitura, organizadas',
+  'cta.body': 'Crie uma conta gratuita para salvar favoritos e liberar recomendações.',
+  'cta.button': 'Criar sua conta',
+  'cta.secondary': 'Já tem conta? Entrar',
 
   'card.ratings': '{count} avaliações',
   'card.unrated': 'Sem avaliações',

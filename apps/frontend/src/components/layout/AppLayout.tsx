@@ -1,39 +1,21 @@
 import type { ReactNode } from 'react';
-import { useI18n } from '@/i18n/I18nProvider';
-import { Starfield } from '@/components/visual/Starfield';
+import { SkyCanvas } from '@/components/visual/SkyCanvas';
 import { PillNav } from './PillNav';
+import { SiteFooter } from './SiteFooter';
 
 /**
- * Page shell. The night-sky gradient + starfield is a fixed, full-bleed canvas
- * behind everything (design_v2's "painting is the connective tissue" idea,
- * reinterpreted as a nocturnal sky). Content and nav float on top.
+ * Page shell. The night-sky canvas is fixed behind everything; the nav floats
+ * on top. Sections manage their own full-bleed (sky) vs. contained (surface)
+ * layout, so `<main>` is edge-to-edge here (design_v2: the sky is full-bleed,
+ * copy blocks are centered within each section).
  */
 export function AppLayout({ children }: { children: ReactNode }) {
-  const { t } = useI18n();
-
   return (
     <div className="relative min-h-dvh">
-      {/* Fixed sky canvas */}
-      <div
-        aria-hidden="true"
-        className="fixed inset-0 -z-10"
-        style={{ background: 'var(--sky-gradient)' }}
-      >
-        <Starfield count={160} />
-      </div>
-
+      <SkyCanvas />
       <PillNav />
-
-      <main className="mx-auto w-full max-w-[1200px] px-[var(--spacing-24)] pb-[var(--spacing-80)] pt-[var(--spacing-40)]">
-        {children}
-      </main>
-
-      <footer className="mx-auto w-full max-w-[1200px] px-[var(--spacing-24)] pb-[var(--spacing-48)]">
-        <div className="flex flex-col gap-[var(--spacing-4)] border-t border-[var(--hairline)] pt-[var(--spacing-24)] text-[var(--text-body-sm)] text-[var(--text-muted)]">
-          <span>{t('footer.tagline')}</span>
-          <span>{t('footer.note')}</span>
-        </div>
-      </footer>
+      <main>{children}</main>
+      <SiteFooter />
     </div>
   );
 }
