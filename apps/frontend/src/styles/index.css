@@ -1,0 +1,194 @@
+@import 'tailwindcss';
+
+/* Font substitutes for the Portrait design system (design.md):
+   - Switzer      -> Inter (universal UI / body face)
+   - Basier Circle -> Plus Jakarta Sans (display / hero headlines) */
+@import '@fontsource-variable/inter';
+@import '@fontsource-variable/plus-jakarta-sans';
+
+/*
+ * Blooking design tokens — adapted from apps/frontend/design.md ("Portrait" system).
+ * Light theme: near-white canvas, single deep-navy ink, a reserved rainbow accent,
+ * two type voices, generous rounding, barely-there layered shadows.
+ */
+@theme {
+  /* ---- Colors ---- */
+  --color-portrait-ink: #08304c;
+  --color-nautical-teal: #084e72;
+  --color-lavender-violet: #8e51ff;
+  --color-cobalt-pop: #3b82f6;
+  --color-grape-vibrant: #ad46ff;
+  --color-cherry-red: #ff4940;
+  --color-tangerine-warm: #ffa130;
+  --color-sunflower-yellow: #ffc837;
+  --color-leaf-green: #00cc3d;
+  --color-charcoal-outline: #353535;
+  --color-graphite-body: #2c2c2c;
+  --color-slate-helper: #797979;
+  --color-iron-quiet: #585858;
+  --color-ash-divider: #dedede;
+  --color-fog-edge: #c7c7c7;
+  --color-mist-hairline: #eeeeee;
+  --color-white-canvas: #ffffff;
+  --color-mint-wash: #d7ffe2;
+  --color-sky-wash: #e8f1ff;
+  --color-peach-wash: #ffebd6;
+
+  /* ---- Typography — families ---- */
+  --font-switzer: 'Inter Variable', 'Inter', ui-sans-serif, system-ui, -apple-system,
+    BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-basier-circle: 'Plus Jakarta Sans Variable', 'Plus Jakarta Sans', ui-sans-serif,
+    system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+
+  /* ---- Typography — scale (sizes carry their line-height) ---- */
+  --text-caption: 10px;
+  --text-caption--line-height: 1.5;
+  --text-caption--letter-spacing: 1.4px;
+  --text-body: 16px;
+  --text-body--line-height: 1.5;
+  --text-body-lg: 18px;
+  --text-body-lg--line-height: 1.45;
+  --text-subheading: 20px;
+  --text-subheading--line-height: 1.43;
+  --text-subheading--letter-spacing: -0.26px;
+  --text-heading-sm: 31px;
+  --text-heading-sm--line-height: 1.1;
+  --text-heading-sm--letter-spacing: -0.4px;
+  --text-heading: 44px;
+  --text-heading--line-height: 1.08;
+  --text-heading--letter-spacing: -1.15px;
+  --text-heading-lg: 49px;
+  --text-heading-lg--line-height: 1.04;
+  --text-heading-lg--letter-spacing: -1.96px;
+  --text-display: 76px;
+  --text-display--line-height: 1;
+  --text-display--letter-spacing: -4.25px;
+
+  /* ---- Spacing scale (base unit 4px) ---- */
+  --spacing-4: 4px;
+  --spacing-8: 8px;
+  --spacing-12: 12px;
+  --spacing-16: 16px;
+  --spacing-20: 20px;
+  --spacing-24: 24px;
+  --spacing-28: 28px;
+  --spacing-32: 32px;
+  --spacing-40: 40px;
+  --spacing-48: 48px;
+  --spacing-56: 56px;
+  --spacing-64: 64px;
+  --spacing-80: 80px;
+  --spacing-128: 128px;
+  --spacing-144: 144px;
+  --spacing-160: 160px;
+
+  /* ---- Border radius (named roles from design.md) ---- */
+  --radius-nav: 28px;
+  --radius-tags: 9999px;
+  --radius-cards: 24px;
+  --radius-images: 24px;
+  --radius-inputs: 16px;
+  --radius-buttons: 28px;
+
+  /* ---- Shadows (layered, capped at low opacity) ---- */
+  --shadow-float: 0 16px 16px -8px rgba(0, 0, 0, 0.03), 0 10px 10px -5px rgba(0, 0, 0, 0.03),
+    0 5px 5px -2.5px rgba(0, 0, 0, 0.03), 0 3px 3px -1.5px rgba(0, 0, 0, 0.03),
+    0 2px 2px -1px rgba(0, 0, 0, 0.03), 0 1px 1px -0.5px rgba(0, 0, 0, 0.03);
+  --shadow-card: 0 0 0 1px oklab(0 0 0 / 0.08), 0 16px 16px -8px rgba(0, 0, 0, 0.03),
+    0 10px 10px -5px rgba(0, 0, 0, 0.03), 0 5px 5px -2.5px rgba(0, 0, 0, 0.03),
+    0 3px 3px -1.5px rgba(0, 0, 0, 0.03), 0 2px 2px -1px rgba(0, 0, 0, 0.03),
+    0 1px 1px -0.5px rgba(0, 0, 0, 0.03);
+  --shadow-card-elevated: 0 0 0 1px oklab(0 0 0 / 0.06), 0 20px 20px -10px rgba(0, 0, 0, 0.07),
+    0 10px 10px -5px rgba(0, 0, 0, 0.04), 0 5px 5px -2.5px rgba(0, 0, 0, 0.03),
+    0 3px 3px -1.5px rgba(0, 0, 0, 0.03), 0 2px 2px -1px rgba(0, 0, 0, 0.03),
+    0 1px 1px -0.5px rgba(0, 0, 0, 0.03);
+  --shadow-hairline: 0 0 0 1px oklab(0 0 0 / 0.1);
+
+  /* ---- The single signature gradient ---- */
+  --gradient-rainbow: linear-gradient(
+    90deg,
+    rgb(38, 192, 255),
+    rgb(230, 0, 194) 20%,
+    rgb(255, 73, 78) 40%,
+    rgb(255, 161, 62) 60%,
+    rgb(255, 200, 55) 80%,
+    rgb(0, 204, 61)
+  );
+}
+
+/* ---- Base layer ---- */
+@layer base {
+  :root {
+    color-scheme: light;
+  }
+
+  html {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+
+  body {
+    margin: 0;
+    background-color: var(--color-white-canvas);
+    color: var(--color-portrait-ink);
+    font-family: var(--font-switzer);
+    font-size: var(--text-body);
+    line-height: 1.5;
+  }
+
+  h1,
+  h2,
+  h3 {
+    font-family: var(--font-basier-circle);
+    font-weight: 600;
+    color: var(--color-portrait-ink);
+  }
+
+  a {
+    color: inherit;
+  }
+
+  img {
+    display: block;
+    max-width: 100%;
+  }
+
+  *:focus-visible {
+    outline: 2px solid var(--color-nautical-teal);
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
+}
+
+/* ---- Reusable utilities ---- */
+@layer components {
+  /* Fill a word (or inline element) with the signature rainbow gradient. */
+  .text-rainbow {
+    background: var(--gradient-rainbow);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+
+  /* 1.5px rainbow-gradient border on an otherwise transparent pill (the CTA). */
+  .border-rainbow {
+    position: relative;
+    background-clip: padding-box;
+    border: 1.5px solid transparent;
+  }
+  .border-rainbow::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    margin: -1.5px;
+    border-radius: inherit;
+    background: var(--gradient-rainbow);
+  }
+
+  /* The tiny rainbow square brand mark. */
+  .brand-swatch {
+    background: var(--gradient-rainbow);
+  }
+}
