@@ -11,7 +11,6 @@ import java.util.List;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
@@ -25,15 +24,15 @@ import dev.blooking.backend.auth.jwt.JwtService;
  * id is taken from the authenticated principal (never a request param) and that
  * the {@code limit} parameter is clamped.
  *
- * <p>Security filters are disabled ({@code addFilters = false}); the
- * authenticated principal is attached to each request with the
- * {@code authentication(...)} request post-processor. (Setting the
- * {@code SecurityContextHolder} directly does not work here, because without the
- * security filter chain nothing propagates that context onto the request
- * thread.)
+ * <p>The security filter chain is <b>enabled</b> (we do NOT set
+ * {@code addFilters = false}): the {@code authentication(...)} request
+ * post-processor relies on the Spring Security filter chain to publish the
+ * supplied {@link Authentication} into the {@code SecurityContextHolder}, from
+ * which the controller's {@code Authentication} method argument is resolved.
+ * With filters disabled, nothing would propagate the principal and the argument
+ * would arrive {@code null}.
  */
 @WebMvcTest(RecommendationController.class)
-@AutoConfigureMockMvc(addFilters = false)
 class RecommendationControllerTest {
 
     @Autowired
@@ -43,15 +42,16 @@ class RecommendationControllerTest {
     private RecommendationService recommendationService;
 
     // The project's SecurityConfig (loaded in the web slice) wires the
-    // JwtAuthenticationFilter, which needs a JwtService. Security filters are
-    // disabled for these tests, but the bean must still be satisfiable so the
-    // application context can start. Mock it.
+    // JwtAuthenticationFilter, which needs a JwtService. The filter never
+    // authenticates here (no Bearer header), but the bean must be satisfiable
+    // so the application context can start. Mock it.
     @MockitoBean
     private JwtService jwtService;
 
     /** An Authentication whose principal is the user id, matching the JWT filter. */
     private static Authentication asUser(long userId) {
-        return new UsernamePasswordAuthenticationToken(userId, null, java.util.List.of());
+        return new UsernamePasswordAuthenticationToken(
+                userId, null, java.util.List.of());
     }
 
     @Test
