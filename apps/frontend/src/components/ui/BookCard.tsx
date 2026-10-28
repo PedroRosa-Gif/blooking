@@ -4,10 +4,12 @@ import type { BookSummary } from '@/types/api';
 import { useI18n } from '@/i18n/I18nProvider';
 import { cn } from '@/lib/cn';
 
-function compact(count: number): string {
-  return new Intl.NumberFormat(undefined, { notation: 'compact', maximumFractionDigits: 1 }).format(
-    count,
-  );
+/** Format with the app's language, not the browser's, so the card never mixes locales. */
+function compact(count: number, lang: string): string {
+  return new Intl.NumberFormat(lang === 'pt' ? 'pt-BR' : 'en-US', {
+    notation: 'compact',
+    maximumFractionDigits: 1,
+  }).format(count);
 }
 
 /**
@@ -15,7 +17,7 @@ function compact(count: number): string {
  * metadata sits quietly below. No frame, so rows of covers read as a shelf.
  */
 export function BookCard({ book, className }: { book: BookSummary; className?: string }) {
-  const { t } = useI18n();
+  const { t, lang } = useI18n();
   const [failed, setFailed] = useState(false);
   const showImage = Boolean(book.coverImg) && !failed;
 
@@ -45,7 +47,7 @@ export function BookCard({ book, className }: { book: BookSummary; className?: s
           {book.rating != null && <span className="text-accent">★ {book.rating.toFixed(2)}</span>}
           <span>
             {book.numRatings != null
-              ? t('card.ratings', { count: compact(book.numRatings) })
+              ? t('card.ratings', { count: compact(book.numRatings, lang) })
               : t('card.unrated')}
           </span>
         </p>

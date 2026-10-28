@@ -117,6 +117,18 @@
   --color-accent-ink: var(--accent-ink);
 }
 
+/* Typed custom properties so the shelf edge fades can animate. */
+@property --fade-l {
+  syntax: '<length>';
+  inherits: false;
+  initial-value: 0px;
+}
+@property --fade-r {
+  syntax: '<length>';
+  inherits: false;
+  initial-value: 0px;
+}
+
 /* ---------- Base ---------- */
 @layer base {
   html {
@@ -223,20 +235,37 @@
   .no-scrollbar::-webkit-scrollbar {
     display: none;
   }
+  /*
+   * Edge fade for a scrolling shelf. Each side fades only when there is more
+   * content on that side: the left edge stays crisp at the first book, the
+   * right edge stays crisp at the last. BookShelf sets data-at-start/-end.
+   */
   .shelf-mask {
+    --fade-l: 0px;
+    --fade-r: 0px;
     -webkit-mask-image: linear-gradient(
       to right,
-      transparent,
-      #000 24px,
-      #000 calc(100% - 56px),
-      transparent
+      transparent 0,
+      #000 var(--fade-l),
+      #000 calc(100% - var(--fade-r)),
+      transparent 100%
     );
     mask-image: linear-gradient(
       to right,
-      transparent,
-      #000 24px,
-      #000 calc(100% - 56px),
-      transparent
+      transparent 0,
+      #000 var(--fade-l),
+      #000 calc(100% - var(--fade-r)),
+      transparent 100%
     );
+    transition:
+      --fade-l 0.25s ease,
+      --fade-r 0.25s ease;
+  }
+  /* 24px = the shelf's scroll-padding, so a snapped card is never under the fade. */
+  .shelf-mask[data-at-start='false'] {
+    --fade-l: 24px;
+  }
+  .shelf-mask[data-at-end='false'] {
+    --fade-r: 56px;
   }
 }

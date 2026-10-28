@@ -86,10 +86,13 @@ export function BookShelf({
         </div>
       </div>
 
+      {/* scroll-px-6 matches px-6, so snapping keeps the first book at scrollLeft 0 */}
       <div
         ref={rowRef}
+        data-at-start={!canPrev}
+        data-at-end={!canNext}
         className={cn(
-          'no-scrollbar shelf-mask -mx-6 flex snap-x snap-mandatory gap-5 overflow-x-auto px-6 pb-6 pt-1',
+          'no-scrollbar shelf-mask -mx-6 flex snap-x snap-mandatory scroll-px-6 gap-5 overflow-x-auto px-6 pb-6 pt-1',
         )}
       >
         {books.map((book) => (

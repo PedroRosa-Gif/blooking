@@ -79,7 +79,7 @@ apps/frontend/
     ├── i18n/               # lightweight EN/PT translations + provider
     ├── mocks/books.ts      # sample books extracted from books_sample.csv
     ├── components/
-    │   ├── ui/             # OwlLogo, BrandMark, Button, Tag, Card, Icon, BookCard, BookShelf
+    │   ├── ui/             # LogoMark, BrandMark, Button, Tag, Card, Icon, BookCard, BookShelf
     │   ├── visual/         # SkyCanvas + Starfield (realistic night sky)
     │   └── layout/         # AnnouncementBar, SiteHeader, SiteFooter, Section, AppLayout,
     │                       # LanguageSwitcher, ThemeToggle
