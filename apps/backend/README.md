@@ -46,6 +46,9 @@ localhost defaults are baked in, matching `docker-compose.yml`):
 | `RABBITMQ_USER` / `RABBITMQ_PASSWORD` | `blooking` | RabbitMQ credentials |
 | `OLLAMA_BASE_URL` | `http://localhost:11434` | Ollama endpoint |
 | `EMBEDDING_MODEL` | `bge-m3` | Embedding model name |
+| `RECO_FAVORITE_WEIGHT` | `1.0` | Weight of a favorite in the preference embedding |
+| `RECO_VIEW_WEIGHT` | `0.25` | Weight of a view in the preference embedding |
+| `RECO_VIEW_CAP` | `3` | Max views per book counted toward the profile |
 | `SERVER_PORT` | `8080` | HTTP port |
 
 ## Endpoints (current)
@@ -64,6 +67,7 @@ localhost defaults are baked in, matching `docker-compose.yml`):
 | `POST` | `/api/favorites/{bookId}` | Favorite a book (auth) |
 | `DELETE` | `/api/favorites/{bookId}` | Remove a favorite (auth) |
 | `GET` | `/api/favorites` | List my favorite books, paginated (auth) |
+| `GET` | `/api/recommendations?limit=` | Personalized book recommendations (auth) |
 | `GET` | `/actuator/health` | Deep health (DB, RabbitMQ, disk, ...) |
 | `GET` | `/actuator/info` | Build/app info |
 | `GET` | `/actuator/metrics` | Metrics |
@@ -158,7 +162,8 @@ Public endpoints: `/api/books/**`, `/api/search`, `/api/auth/{register,login,ref
 Logged-in users can favorite/unfavorite books (`/api/favorites`). Every
 interaction — **view, search, favorite, unfavorite** — publishes an event to
 **RabbitMQ**, and a consumer records it in the append-only `interactions` table
-(audit log + source data for recommendations).
+(audit log + source data for recommendations — see
+[Recommendations](#recommendations-us05)).
 
 **Watch it work:**
 - **RabbitMQ Management UI** → http://localhost:15672 (user/pass from `.env`,
@@ -172,6 +177,40 @@ a new row lands in `interactions`.
 
 Event types / routing keys: `book.viewed`, `book.searched`, `book.favorited`,
 `book.unfavorited` (topic exchange, bound with `book.*`).
+
+## Recommendations (US05)
+
+`GET /api/recommendations?limit=` (auth) returns a personalized list of books.
+
+The consumer doubles as a **recommendation worker**: when a user favorites,
+unfavorites, or views a book, it recomputes that user's **preference embedding**
+and stores it in `user_profiles` (migration `V8`).
+
+The preference embedding is a **weighted centroid** of the embeddings of the
+books the user interacted with:
+
+- **favorites** are the strong signal (weight `1.0`);
+- **views** are a weaker signal (weight `0.25` per view, capped at `3` views per
+  book) — so repeatedly viewing a book counts as stronger interest, but a burst
+  of page refreshes can't drown out the user's other interests;
+- views of a book the user has already favorited are ignored (no double count).
+
+The weights are configurable under `blooking.recommendation.*` (see
+`application.yml`). Because the recompute reads the live favorites + view history
+each time, unfavoriting removes a book's influence and the profile never drifts.
+
+Recommendations are then served in two modes:
+
+- **Content-based** — when the user has a preference embedding, return the books
+  whose embeddings are nearest to it by cosine distance (pgvector `<=>`),
+  excluding books they already favorite.
+- **Cold-start fallback** — a user with no favorites yet gets the most popular
+  books (by `num_ratings`, then `rating`), so the section is never empty.
+
+```bash
+# After logging in and favoriting a few books:
+curl -H "Authorization: Bearer <access>" "http://localhost:8080/api/recommendations?limit=12"
+```
 
 ## Tests
 

@@ -22,4 +22,36 @@ public final class VectorLiterals {
         sb.append(']');
         return sb.toString();
     }
+
+    /**
+     * Parses a pgvector text literal (e.g. {@code [0.1,0.2,0.3]}) back into a
+     * {@code float[]}. This is how pgvector renders a {@code vector} column when
+     * read as a string via JDBC. A {@code null} or blank input yields
+     * {@code null}.
+     */
+    public static float[] fromVectorLiteral(String literal) {
+        if (literal == null) {
+            return null;
+        }
+        String trimmed = literal.trim();
+        if (trimmed.isEmpty()) {
+            return null;
+        }
+        // Strip the surrounding brackets.
+        if (trimmed.startsWith("[")) {
+            trimmed = trimmed.substring(1);
+        }
+        if (trimmed.endsWith("]")) {
+            trimmed = trimmed.substring(0, trimmed.length() - 1);
+        }
+        if (trimmed.isEmpty()) {
+            return new float[0];
+        }
+        String[] parts = trimmed.split(",");
+        float[] vector = new float[parts.length];
+        for (int i = 0; i < parts.length; i++) {
+            vector[i] = Float.parseFloat(parts[i].trim());
+        }
+        return vector;
+    }
 }
