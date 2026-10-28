@@ -1,8 +1,10 @@
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import type { BookSummary } from '@/types/api';
 import { useI18n } from '@/i18n/I18nProvider';
 import { cn } from '@/lib/cn';
+import { displayAuthors } from '@/lib/authors';
+import { fromState } from '@/lib/navigation';
 
 /** Format with the app's language, not the browser's, so the card never mixes locales. */
 function compact(count: number, lang: string): string {
@@ -18,11 +20,16 @@ function compact(count: number, lang: string): string {
  */
 export function BookCard({ book, className }: { book: BookSummary; className?: string }) {
   const { t, lang } = useI18n();
+  const location = useLocation();
   const [failed, setFailed] = useState(false);
   const showImage = Boolean(book.coverImg) && !failed;
 
   return (
-    <Link to={`/books/${book.id}`} className={cn('group block w-full', className)}>
+    <Link
+      to={`/books/${book.id}`}
+      state={fromState(location.pathname, location.search)}
+      className={cn('group block w-full', className)}
+    >
       <div className="relative aspect-[2/3] overflow-hidden rounded-image bg-card-2 shadow-cover ring-1 ring-line transition duration-300 group-hover:-translate-y-1 group-hover:ring-line-strong">
         {showImage ? (
           <img
@@ -42,7 +49,7 @@ export function BookCard({ book, className }: { book: BookSummary; className?: s
 
       <div className="mt-3 space-y-1">
         <h3 className="line-clamp-2 text-body-sm font-medium leading-snug text-fg">{book.title}</h3>
-        <p className="line-clamp-1 text-caption text-fg-muted">{book.author}</p>
+        <p className="line-clamp-1 text-caption text-fg-muted">{displayAuthors(book.author)}</p>
         <p className="flex items-center gap-2 font-mono text-caption text-fg-subtle">
           {book.rating != null && <span className="text-accent">★ {book.rating.toFixed(2)}</span>}
           <span>

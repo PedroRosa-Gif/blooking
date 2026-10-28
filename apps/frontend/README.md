@@ -4,10 +4,10 @@
 Web UI for book discovery, hybrid search and personalized recommendations.
 Talks to the [Blooking backend](../backend) REST API.
 
-> **Status:** Phase 1 — **scaffold**. This sets up the toolchain, design system,
-> typed API layer, auth skeleton, i18n (EN/PT) and a Home page. The Home grid
-> currently renders **sample data** derived from the backend dataset so the app
-> runs without the backend. Feature screens (US01–US11) land in later phases.
+> **Status:** Phase 2 — **discovery**. Search, catalog with filters and the book
+> detail page (US01–US04) run against the live backend API. The backend must be
+> running for data to appear. Auth, favorites and recommendations (US05–US11)
+> land in Phase 3.
 
 ## Tech Stack
 
@@ -21,8 +21,8 @@ Talks to the [Blooking backend](../backend) REST API.
 
 - Node.js **20+** (the repo is developed on Node 22)
 - The backend running on `http://localhost:8080` for live data (see
-  [`apps/backend/README.md`](../backend/README.md)). Not required to start the
-  UI in Phase 1 — the Home page uses sample data.
+  [`apps/backend/README.md`](../backend/README.md)). From Phase 2 on, the UI
+  needs it — book data comes from the API, not from sample data.
 
 ## Running locally
 
@@ -75,15 +75,22 @@ apps/frontend/
     ├── api/                # endpoint fns + React Query hooks + query keys
     ├── auth/               # tokenStore + AuthContext (skeleton; wired in Phase 3)
     ├── theme/              # ThemeProvider (dark default) + useTheme
-    ├── hooks/useReveal.ts  # reveal-on-scroll (IntersectionObserver)
+    ├── hooks/              # useReveal, useInfiniteScroll, useCatalogParams,
+    │                       # useActiveSection, useSearchShortcut
     ├── i18n/               # lightweight EN/PT translations + provider
-    ├── mocks/books.ts      # sample books extracted from books_sample.csv
     ├── components/
-    │   ├── ui/             # LogoMark, BrandMark, Button, Tag, Card, Icon, BookCard, BookShelf
+    │   ├── ui/             # LogoMark, BrandMark, Button, Tag, Card, Icon, Spinner,
+    │   │                   # BookCard(+Skeleton), BookGrid, BookShelf, StateView, BackLink
+    │   ├── book/           # GenreShelf, ConstellationFacts, Description, AwardsSection,
+    │   │                   # SectionNav, RelatedShelves, ChipRow
+    │   ├── search/         # FiltersPanel, ResultsToolbar, ResultRow
+    │   ├── catalog/        # FilterBar
     │   ├── visual/         # SkyCanvas + Starfield (realistic night sky)
     │   └── layout/         # AnnouncementBar, SiteHeader, SiteFooter, Section, AppLayout,
-    │                       # LanguageSwitcher, ThemeToggle
-    ├── lib/shelves.ts      # genre shelf definitions + grouping
+    │                       # ScrollManager, LanguageSwitcher, ThemeToggle
+    ├── lib/                # page, navigation, refine, description, awards, authors,
+    │                       # recentSearches, bookSections, genres, shelves, cn
+    ├── pages/              # Home, Catalog, Search, BookDetail, NotFound
     └── pages/              # HomePage, NotFoundPage
 ```
 
@@ -169,7 +176,124 @@ then to the raw key.
 
 ## Roadmap
 
-- **Phase 1 (this):** scaffold, design system, API layer, Home with sample data.
-- **Phase 2:** US01–US04 — search, catalog list, filters, book detail (live API).
+- **Phase 1 (done):** scaffold, design system, API layer.
+- **Phase 2 (this):** US01–US04 — search, catalog list + filters, book detail,
+  all against the live API (no more sample data).
 - **Phase 3:** US05–US11 — recommendations, auth, favorites.
 - **Phase 4 (optional):** refresh-token → HttpOnly cookie + CSRF (backend + frontend).
+
+## Routes & data (Phase 2)
+
+| Route        | Screen                | Endpoint                               |
+| :----------- | :-------------------- | :------------------------------------- |
+| `/`          | Home                  | `GET /api/books?genre=` (one per shelf) + one decorative `GET /api/search` preview per page load |
+| `/search?q=` | **Search** (US01)     | `GET /api/search?q=&limit=50`, refined client-side |
+| `/books`     | **Browse** (US02/US03)| `GET /api/books` (infinite scroll)     |
+| `/books/:id` | Book detail (US04)    | `GET /api/books/{id}` + `GET /api/books` for "more by author / in genre" |
+
+### Search vs. Browse
+
+There used to be two text searches that behaved differently (the catalog's box was
+a plain `ILIKE` on title/author, `/search` was the hybrid semantic + keyword
+engine). They are now separate on purpose:
+
+- **Search** is the only place to type words. Natural language, English or
+  Portuguese. Results can be refined by genre, decade and minimum rating, sorted,
+  and shown as a grid or a list. The query and every refinement live in the URL.
+- **Browse** is for structured filtering (genre, author, sort) over the whole
+  catalog, with infinite scroll. It links to Search for free text, and an old
+  `/books?q=` link is redirected to `/search?q=`.
+
+The backend's `/api/search` takes only `q` and `limit` (max 50) and cannot filter,
+so refinement runs on the returned results. That keeps every tweak instant and
+avoids extra searches (each one costs an embedding and records a `searched`
+event). The UI says so ("Showing the 50 best matches"). Server-side filters are a
+backend follow-up.
+
+### Things that are easy to get wrong
+
+- **Pagination shape.** The backend serializes pages as `{ content, page: {...} }`
+  (`serialization-mode: via_dto`), not the older flat shape. `lib/page.ts`
+  normalizes both; read pages only through `normalizePage`.
+- **Events.** `GET /api/books/{id}` records a `viewed` event and `GET /api/search`
+  a `searched` event. Do not prefetch book details, search as you type, or run
+  decorative searches on every visit. Related-book shelves use the list endpoint,
+  which records nothing.
+- **Going back.** "Back" steps through history and names the page it returns to.
+  `ScrollManager` restores each page's scroll position (the browser cannot, because
+  it scrolls before React has rendered the previous page). Positions are saved at
+  the moment of leaving, not on every scroll event, because the page change itself
+  shrinks the document and fires a misleading scroll event.
+- **Regex portability.** Avoid lookbehind and inline modifiers (`(?-i:...)`) in
+  frontend code: older Safari throws at module load, which would take down the
+  whole page that imports the module.
+
+### Book detail
+
+The page has a sticky in-page navigation (About, Awards, Characters, More by
+author, Similar) that highlights the section being read and only lists sections
+the book actually has. Dataset text is cleaned up for reading, without ever
+rewriting it:
+
+- **Description** (`lib/description.ts`): descriptions arrive with line breaks
+  stripped ("DEATH.THE HUNGER GAMES"). Spacing is repaired, sentences are grouped
+  into short paragraphs, the first sentence is a lead, long text collapses behind
+  "Read more", and edition boilerplate ("Librarian's note...") is set apart.
+  Checked against all 2,984 descriptions: no characters lost or changed.
+- **Awards** (`lib/awards.ts`): grouped into Won and Nominated, newest first,
+  collapsed after six rows (one book has 41). Checked against all 5,169 award
+  strings.
+- **Authors** (`lib/authors.ts`): the "(Goodreads Author)" tag is hidden; real
+  credits (Translator, Illustrator) are kept.
+
+- Genre filter is multi-select in the UI, but the backend accepts a single
+  `genre`, so only the first is sent (see `toBookParams` in `api/books.ts`).
+  A backend change to accept several genres is tracked.
+
+## Authentication (current vs. planned)
+
+Phase 1 ships only the auth **skeleton**. The token transport is deliberately
+funnelled through `src/auth/tokenStore.ts`:
+
+- **Now:** the access token is kept **in memory**; the refresh token is stored in
+  `localStorage` and sent in the request body (matching the current backend).
+- **Planned:** move the refresh token to an **HttpOnly + Secure + SameSite
+  cookie** (set/read by the backend) and add CSRF protection. The Axios client
+  already sets `withCredentials: true` and the backend already allows
+  credentials, so that migration is localized to `tokenStore.ts` + the Axios
+  interceptor.
+
+## Internationalization
+
+Lightweight, dependency-free EN/PT support (`src/i18n/`). English is the
+default; a language toggle lives in the nav. Missing keys fall back to English,
+then to the raw key.
+
+## Roadmap
+
+- **Phase 1 (done):** scaffold, design system, API layer.
+- **Phase 2 (this):** US01–US04 — search, catalog list + filters, book detail,
+  all against the live API (no more sample data).
+- **Phase 3:** US05–US11 — recommendations, auth, favorites.
+- **Phase 4 (optional):** refresh-token → HttpOnly cookie + CSRF (backend + frontend).
+
+## Routes & data (Phase 2)
+
+| Route        | Screen                | Endpoint                               |
+| :----------- | :-------------------- | :------------------------------------- |
+| `/`          | Home                  | `GET /api/books?genre=` (one per shelf) + a live `GET /api/search` preview |
+| `/search?q=` | Search results (US01) | `GET /api/search?q=&limit=`            |
+| `/books`     | Catalog (US02/US03)   | `GET /api/books` (infinite scroll)     |
+| `/books/:id` | Book detail (US04)    | `GET /api/books/{id}`                  |
+
+Notes:
+
+- **Infinite scroll** via `useInfiniteQuery` + an IntersectionObserver sentinel.
+- **Filters live in the URL** (`?q=&author=&genre=&genre=&sort=`) so the catalog
+  is shareable and works with back/forward.
+- **Genre filter is multi-select in the UI**, but the backend currently accepts a
+  single `genre`, so only the first is sent (see `toBookParams` in `api/books.ts`).
+  A backend change to accept multiple genres is tracked; revisit when backend
+  work resumes.
+- Opening `/books/:id` makes the backend emit a `viewed` interaction event — no
+  frontend action needed.

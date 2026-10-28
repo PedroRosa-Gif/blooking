@@ -1,14 +1,16 @@
 import { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useI18n } from '@/i18n/I18nProvider';
 import { BrandMark } from '@/components/ui/BrandMark';
 import { Button } from '@/components/ui/Button';
-import { CloseIcon, MenuIcon } from '@/components/ui/Icon';
+import { CloseIcon, MenuIcon, SearchIcon } from '@/components/ui/Icon';
+import { useSearchShortcut } from '@/hooks/useSearchShortcut';
 import { LanguageSwitcher } from './LanguageSwitcher';
 import { ThemeToggle } from './ThemeToggle';
 
-const NAV_LINKS = [
-  { key: 'nav.genres', href: '/#genres' },
+// `to` is a router route; `href` is a homepage hash anchor (browser-handled).
+const NAV_LINKS: Array<{ key: string; to?: string; href?: string }> = [
+  { key: 'nav.browse', to: '/books' },
   { key: 'nav.how', href: '/#how' },
   { key: 'nav.why', href: '/#why' },
 ];
@@ -27,7 +29,11 @@ const linkClass =
  */
 export function SiteHeader() {
   const { t } = useI18n();
+  const navigate = useNavigate();
   const [open, setOpen] = useState(false);
+
+  // "/" jumps to search from anywhere (except while typing in a field).
+  useSearchShortcut(() => navigate('/search'));
 
   useEffect(() => {
     if (!open) return;
@@ -40,20 +46,37 @@ export function SiteHeader() {
 
   return (
     <header className="sticky top-0 z-50 border-b border-line bg-nav/80 backdrop-blur-xl">
-      <div className="mx-auto flex h-16 w-full max-w-[1200px] items-center justify-between gap-6 px-6 lg:grid lg:grid-cols-[1fr_auto_1fr]">
+      <div className="mx-auto flex h-16 w-full max-w-[1200px] items-center justify-between gap-6 px-6 desk:grid desk:grid-cols-[1fr_auto_1fr]">
         <Link to="/" aria-label={t('nav.home')} className="justify-self-start">
           <BrandMark label={t('nav.brand')} />
         </Link>
 
-        <nav aria-label={t('nav.primary')} className="hidden items-center gap-1 lg:flex">
-          {NAV_LINKS.map((l) => (
-            <a key={l.key} href={l.href} className={linkClass}>
-              {t(l.key)}
-            </a>
-          ))}
+        <nav aria-label={t('nav.primary')} className="hidden items-center gap-1 desk:flex">
+          {NAV_LINKS.map((l) =>
+            l.to ? (
+              <Link key={l.key} to={l.to} className={linkClass}>
+                {t(l.key)}
+              </Link>
+            ) : (
+              <a key={l.key} href={l.href} className={linkClass}>
+                {t(l.key)}
+              </a>
+            ),
+          )}
         </nav>
 
-        <div className="hidden items-center justify-self-end gap-2 lg:flex">
+        <div className="hidden items-center justify-self-end gap-2 desk:flex">
+          <Link
+            to="/search"
+            aria-label={t('nav.search')}
+            className="group inline-flex h-9 items-center gap-2 rounded-full border border-line pl-3.5 pr-2 text-body-sm text-fg-muted transition-colors hover:border-line-strong hover:text-fg"
+          >
+            <SearchIcon />
+            <span>{t('nav.search')}</span>
+            <kbd className="rounded-md border border-line px-1.5 py-0.5 font-mono text-caption text-fg-subtle">
+              /
+            </kbd>
+          </Link>
           <LanguageSwitcher />
           <ThemeToggle />
           <span className="mx-1 h-5 w-px bg-line" aria-hidden="true" />
@@ -71,26 +94,36 @@ export function SiteHeader() {
           aria-expanded={open}
           aria-controls="mobile-menu"
           aria-label={open ? t('nav.closeMenu') : t('nav.openMenu')}
-          className="inline-flex size-9 items-center justify-center rounded-full border border-line text-fg transition-colors hover:border-line-strong lg:hidden"
+          className="inline-flex size-9 items-center justify-center rounded-full border border-line text-fg transition-colors hover:border-line-strong desk:hidden"
         >
           {open ? <CloseIcon /> : <MenuIcon />}
         </button>
       </div>
 
       {open && (
-        <div id="mobile-menu" className="border-t border-line bg-nav lg:hidden">
+        <div id="mobile-menu" className="border-t border-line bg-nav desk:hidden">
           <div className="mx-auto flex w-full max-w-[1200px] flex-col gap-6 px-6 py-6">
+            <Link
+              to="/search"
+              onClick={() => setOpen(false)}
+              className="flex h-12 items-center gap-3 rounded-full border border-line px-5 text-body text-fg-muted"
+            >
+              <SearchIcon size={20} />
+              {t('nav.search')}
+            </Link>
             <nav aria-label={t('nav.primary')} className="flex flex-col">
-              {NAV_LINKS.map((l) => (
-                <a
-                  key={l.key}
-                  href={l.href}
-                  onClick={() => setOpen(false)}
-                  className="border-b border-line py-3 text-lead font-medium text-fg"
-                >
-                  {t(l.key)}
-                </a>
-              ))}
+              {NAV_LINKS.map((l) => {
+                const cls = 'border-b border-line py-3 text-lead font-medium text-fg';
+                return l.to ? (
+                  <Link key={l.key} to={l.to} onClick={() => setOpen(false)} className={cls}>
+                    {t(l.key)}
+                  </Link>
+                ) : (
+                  <a key={l.key} href={l.href} onClick={() => setOpen(false)} className={cls}>
+                    {t(l.key)}
+                  </a>
+                );
+              })}
             </nav>
             <div className="flex items-center gap-2">
               <LanguageSwitcher />

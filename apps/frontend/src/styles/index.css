@@ -41,6 +41,11 @@
   --text-display: 4.5rem; /* 72 */
   --text-display--line-height: 1;
 
+  /* The full header (brand, links, search, language, theme, auth) needs ~930px of
+     content plus gaps; at 1024px it had no slack, and Portuguese labels are longer.
+     Below this width the compact menu is used instead. */
+  --breakpoint-desk: 1180px;
+
   /* Radii: cards soft, covers slightly tighter, controls are pills. */
   --radius-card: 1.25rem;
   --radius-image: 0.75rem;
@@ -226,6 +231,13 @@
       opacity: 1;
       transform: none;
     }
+  }
+
+  /* Collapsed text fades out at the bottom. A mask (not a colored gradient) so it
+     works over the sky, a solid band and the light theme without matching a color. */
+  .clamp-fade {
+    -webkit-mask-image: linear-gradient(to bottom, #000 55%, transparent 100%);
+    mask-image: linear-gradient(to bottom, #000 55%, transparent 100%);
   }
 
   /* Horizontal shelf: hidden scrollbar and soft edge fade. */
