@@ -1,30 +1,23 @@
 import type { ReactNode } from 'react';
+import { cn } from '@/lib/cn';
 
-type Variant = 'surface' | 'glass';
+type Variant = 'solid' | 'glass';
 
 const variants: Record<Variant, string> = {
-  // Quiet content card on a solid surface band (design_v1 "Photo Profile Card").
-  surface: 'bg-[var(--surface)] border border-[var(--hairline)] shadow-[var(--shadow-card)]',
-  // Floating card over the sky — translucent + blur (design_v2 floating panels).
-  glass:
-    'bg-[color-mix(in_srgb,var(--surface)_72%,transparent)] border border-[var(--hairline)] ' +
-    'shadow-[var(--shadow-float)] backdrop-blur-md',
+  // Tonal tile with a hairline and a faint top highlight (no drop shadow).
+  solid: 'bg-card border border-line shadow-card',
+  // Translucent tile for use directly over the sky.
+  glass: 'bg-card/60 border border-line shadow-card backdrop-blur-xl',
 };
 
 export function Card({
-  variant = 'surface',
-  className = '',
+  variant = 'solid',
+  className,
   children,
 }: {
   variant?: Variant;
   className?: string;
   children: ReactNode;
 }) {
-  return (
-    <div
-      className={`rounded-[var(--radius-cards)] p-[var(--spacing-24)] ${variants[variant]} ${className}`}
-    >
-      {children}
-    </div>
-  );
+  return <div className={cn('rounded-card p-6', variants[variant], className)}>{children}</div>;
 }

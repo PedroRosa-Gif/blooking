@@ -1,41 +1,51 @@
 import type { ButtonHTMLAttributes, ReactNode } from 'react';
+import { cn } from '@/lib/cn';
 
-type Variant = 'accent' | 'outline' | 'ghost';
+export type ButtonVariant = 'primary' | 'outline' | 'ghost';
+export type ButtonSize = 'sm' | 'md' | 'lg';
+
+/**
+ * Pill buttons (design_v3). Heights are fixed per size so every control in the
+ * header, hero and footer lines up: sm 36px, md 40px, lg 48px.
+ *  - primary: amber fill, the single filled action
+ *  - outline: hairline border, defers to the primary
+ *  - ghost:   text only
+ */
+const base =
+  'inline-flex shrink-0 select-none items-center justify-center gap-2 whitespace-nowrap rounded-full ' +
+  'font-medium transition-colors duration-150 disabled:pointer-events-none disabled:opacity-50';
+
+const variants: Record<ButtonVariant, string> = {
+  primary: 'bg-accent text-accent-ink shadow-sm hover:bg-accent-hover',
+  outline: 'border border-line-strong text-fg hover:bg-fg/5',
+  ghost: 'text-fg-muted hover:text-fg',
+};
+
+const sizes: Record<ButtonSize, string> = {
+  sm: 'h-9 px-4 text-body-sm',
+  md: 'h-10 px-5 text-body-sm',
+  lg: 'h-12 px-7 text-body',
+};
+
+/** Class string, so links (<a>, <Link>) can look exactly like buttons. */
+export function buttonClasses(opts: {
+  variant?: ButtonVariant;
+  size?: ButtonSize;
+  className?: string;
+}) {
+  const { variant = 'primary', size = 'md', className } = opts;
+  return cn(base, variants[variant], sizes[size], className);
+}
 
 interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
-  variant?: Variant;
+  variant?: ButtonVariant;
+  size?: ButtonSize;
   children: ReactNode;
 }
 
-/**
- * Button primitives (pill shaped, per design_v2).
- *  - `accent`:  the single amber filled CTA (sign up / primary conversion).
- *  - `outline`: amber-outlined secondary action, stays visible on the sky.
- *  - `ghost`:   text-only tertiary action (login, inline links).
- *
- * The amber accent replaces the old rainbow entirely — it's the one chromatic
- * action color in the system.
- */
-const base =
-  'inline-flex items-center justify-center gap-[var(--spacing-8)] rounded-[var(--radius-buttons)] ' +
-  'font-medium transition-[background-color,color,box-shadow,transform] duration-150 ' +
-  'disabled:cursor-not-allowed disabled:opacity-45 active:translate-y-px';
-
-const variants: Record<Variant, string> = {
-  accent:
-    'bg-[var(--accent)] text-[var(--accent-ink)] px-[var(--spacing-24)] py-[var(--spacing-12)] ' +
-    'text-[var(--text-body)] hover:bg-[var(--accent-hover)] hover:shadow-[var(--shadow-accent-glow)]',
-  outline:
-    'bg-transparent text-[var(--accent)] border border-[var(--accent)] ' +
-    'px-[var(--spacing-24)] py-[var(--spacing-12)] text-[var(--text-body)] hover:bg-[color-mix(in_srgb,var(--accent)_12%,transparent)]',
-  ghost:
-    'bg-transparent text-[var(--text)] px-[var(--spacing-16)] py-[var(--spacing-8)] ' +
-    'text-[var(--text-body)] hover:text-[var(--accent)]',
-};
-
-export function Button({ variant = 'accent', className = '', children, ...rest }: ButtonProps) {
+export function Button({ variant, size, className, children, ...rest }: ButtonProps) {
   return (
-    <button className={`${base} ${variants[variant]} ${className}`} {...rest}>
+    <button className={buttonClasses({ variant, size, className })} {...rest}>
       {children}
     </button>
   );

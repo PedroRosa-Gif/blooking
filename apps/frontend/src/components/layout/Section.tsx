@@ -1,32 +1,31 @@
 import type { ReactNode } from 'react';
+import { cn } from '@/lib/cn';
 
-type Band = 'sky' | 'surface';
+type Tone = 'sky' | 'solid';
 
 /**
- * A vertical page band. `sky` is transparent so the fixed night-sky shows
- * through; `surface` lays an elevated opaque band over the sky (the quiet
- * content sections). Alternating them creates design_v2's sky → quiet → sky
- * breathing rhythm. Inner content is centered to the 1200px max-width.
+ * A full-bleed page band.
+ *  - `sky`:   transparent, the fixed night sky shows through.
+ *  - `solid`: a flat tonal band whose top and bottom edges dissolve into the
+ *             sky (see `.band` in index.css). Alternating the two gives the
+ *             sky, quiet, sky rhythm without borders or blur.
+ * Solid bands should keep at least 96px of vertical padding so content stays
+ * clear of the fade zones.
  */
 export function Section({
-  band = 'sky',
+  tone = 'sky',
   id,
-  className = '',
+  className,
   children,
 }: {
-  band?: Band;
+  tone?: Tone;
   id?: string;
   className?: string;
   children: ReactNode;
 }) {
-  const bandClass =
-    band === 'surface'
-      ? 'bg-[color-mix(in_srgb,var(--bg-elevated)_88%,transparent)] border-y border-[var(--hairline)] backdrop-blur-sm'
-      : '';
-
   return (
-    <section id={id} className={`relative w-full ${bandClass} ${className}`}>
-      <div className="mx-auto w-full max-w-[1200px] px-[var(--spacing-24)]">{children}</div>
+    <section id={id} className={cn('relative scroll-mt-16', tone === 'solid' && 'band', className)}>
+      <div className="mx-auto w-full max-w-[1200px] px-6">{children}</div>
     </section>
   );
 }

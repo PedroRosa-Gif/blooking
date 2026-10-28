@@ -79,30 +79,45 @@ apps/frontend/
     ├── i18n/               # lightweight EN/PT translations + provider
     ├── mocks/books.ts      # sample books extracted from books_sample.csv
     ├── components/
-    │   ├── ui/             # OwlLogo, BrandMark, Button, Pill, BookCard
-    │   ├── visual/         # Starfield (animated night sky)
-    │   └── layout/         # PillNav, AppLayout, LanguageSwitcher, ThemeToggle
+    │   ├── ui/             # OwlLogo, BrandMark, Button, Tag, Card, Icon, BookCard, BookShelf
+    │   ├── visual/         # SkyCanvas + Starfield (realistic night sky)
+    │   └── layout/         # AnnouncementBar, SiteHeader, SiteFooter, Section, AppLayout,
+    │                       # LanguageSwitcher, ThemeToggle
+    ├── lib/shelves.ts      # genre shelf definitions + grouping
     └── pages/              # HomePage, NotFoundPage
 ```
 
 ## Design system — "Nightjar"
 
 A **dark-first, nocturnal** theme built around the Blooking brand: a night owl
-with a magnifier (search). The owl is a night creature, so the default canvas is
-a **night sky** — a vertical gradient from deep blue to near-black with an
-animated star field — and the single accent color is a warm **amber** (`#e8b059`,
-like an owl's eyes under a reading lamp). Type pairs **Inter** (body/UI) with a
-literary serif, **Cormorant Garamond**, for headlines.
+with a magnifier (search). The default canvas is a **night sky**: near-black at
+the zenith, a deep blue at the horizon, with a realistic star field (tiny
+sub-pixel stars in spectral colors, a Milky Way band, a few bright stars with
+diffraction spikes, an occasional shooting star). The single accent is a warm
+**amber** (`#e8b059`), like an owl's eyes under a reading lamp.
 
-The two reference docs in [`styles_plans/`](./styles_plans) inform it (lower
-version number = higher priority): `design_v1` ("Portrait") contributes the
-quiet-frame structure, floating pill nav and card language; `design_v2` ("Cora")
-contributes the full-bleed sky-as-canvas and scroll narrative. Neither is a dark
-theme, so the palette is an original derivation; the project's own direction
-(owl brand, amber accent replacing the rainbow/berry accents, starry hero with
-books fading in on scroll) takes precedence. Tokens live as Tailwind v4 `@theme`
-properties plus semantic theme variables (`--bg`, `--surface`, `--text`,
-`--accent`, …) in `src/styles/index.css`.
+**Type:** one family, two cuts. **Geist** for all UI and headlines, **Geist
+Mono** for eyebrows, counts, stats and code. Sizes come from a fixed scale
+(`text-caption` 12, `text-body-sm` 14, `text-body` 16, `text-lead` 18,
+`text-title` 24, `text-headline` 48, `text-display` 72). Icons are one set:
+outlined, 1.5px stroke, 16px (20px only in large controls).
+
+**Layout language:** full-bleed bands that alternate between open sky and flat
+tonal bands whose edges dissolve into the sky (the Apple pattern), cover-first
+book shelves that scroll horizontally, a bento grid for the product story, and
+a console-style header and footer.
+
+The reference docs in [`styles_plans/`](./styles_plans) inform it (lower version
+number = higher priority): `design_v1` for the quiet-frame structure and card
+language, `design_v2` for the sky-as-canvas scroll narrative, `design_v3` for
+the header (announcement strip, bar darker than the page, hairline, pill
+buttons), mono labels and recessed code fields. None is used literally; the
+project's own direction (owl brand, amber accent, night palette) takes
+precedence.
+
+> **Tailwind v4 gotcha:** do not write `text-[var(--x)]` for a font size. It is
+> ambiguous with text color and resolves as color, so the size is silently
+> ignored. Use the named utilities above, or `text-[length:var(--x)]`.
 
 ## Theming (dark / light)
 
@@ -110,12 +125,14 @@ properties plus semantic theme variables (`--bg`, `--surface`, `--text`,
   stored choice, else the OS preference (falling back to dark), and sets
   `data-theme` on `<html>`. An inline script in `index.html` applies it before
   first paint to avoid a flash.
-- A **moon/sun toggle** in the nav switches themes; the choice persists in
-  `localStorage`.
-- Flipping themes only swaps the semantic variable block — components read
-  `var(--bg)` / `var(--text)` / `var(--accent)` etc., never raw palette colors.
-- Motion (star twinkle, scroll reveals) is disabled under
-  `prefers-reduced-motion`.
+- A **moon/sun toggle** (header and footer) switches themes; the choice persists
+  in `localStorage`. Stars are shown in the dark theme only.
+- Semantic tokens (`--canvas`, `--band`, `--card`, `--fg`, `--accent`, …) live in
+  `src/styles/index.css` and are exposed as Tailwind utilities (`bg-canvas`,
+  `text-fg`, `border-line`, `text-accent`). Flipping themes only swaps that
+  variable block.
+- Motion (star twinkle, parallax, shooting stars, scroll reveals) is disabled
+  under `prefers-reduced-motion`.
 
 ## API contract
 

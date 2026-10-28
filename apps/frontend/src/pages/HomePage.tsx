@@ -1,246 +1,274 @@
-import { useState, type FormEvent } from 'react';
+import { useMemo, useState, type FormEvent } from 'react';
 import { useI18n } from '@/i18n/I18nProvider';
+import type { BookSummary } from '@/types/api';
+import { MOCK_BOOK_SUMMARIES } from '@/mocks/books';
+import { buildShelves } from '@/lib/shelves';
+import { Section } from '@/components/layout/Section';
 import { Button } from '@/components/ui/Button';
-import { Pill } from '@/components/ui/Pill';
 import { Card } from '@/components/ui/Card';
 import { Reveal } from '@/components/ui/Reveal';
-import { BookCard } from '@/components/ui/BookCard';
-import { Section } from '@/components/layout/Section';
-import { MOCK_BOOK_SUMMARIES } from '@/mocks/books';
+import { Tag } from '@/components/ui/Tag';
+import { BookShelf } from '@/components/ui/BookShelf';
+import { BookOpenIcon, GlobeIcon, HeartIcon, SearchIcon } from '@/components/ui/Icon';
+
+const STATS = ['books', 'lang', 'dim', 'rrf'] as const;
+const CHIPS = ['hero.chip1', 'hero.chip2', 'hero.chip3'] as const;
+
+const iconBadge =
+  'inline-flex size-10 items-center justify-center rounded-xl border border-line bg-fg/5 text-fg';
+const h2Class = 'text-4xl font-semibold sm:text-headline';
 
 /**
- * Home — rebuilt around the design_v2 scroll narrative (alternating sky /
- * surface bands, headlines floating on the sky, content emerging on scroll)
- * with design_v1 polish (quiet frame, soft cards, generous rhythm).
- *
- * Bands, top → bottom:
- *   Hero (sky) → How it works (surface) → Why Blooking (sky) →
- *   Popular grid (surface) → CTA (sky)
+ * Home. Bands, top to bottom:
+ *   Hero (sky) > Genre shelves (solid) > How it works (sky) >
+ *   Why Blooking, bento (solid) > CTA (sky)
+ * Sample data for now; Phase 2 swaps in the live API.
  */
 export function HomePage() {
   const { t } = useI18n();
   const [query, setQuery] = useState('');
 
+  const shelves = useMemo(() => buildShelves(MOCK_BOOK_SUMMARIES), []);
+  const previewBooks = useMemo(
+    () =>
+      [2, 8, 9]
+        .map((id) => MOCK_BOOK_SUMMARIES.find((b) => b.id === id))
+        .filter((b): b is BookSummary => Boolean(b)),
+    [],
+  );
+
   function onSubmit(e: FormEvent) {
     e.preventDefault();
-    // Phase 2 wires this to /api/search + a results route.
+    // Phase 2 wires this to /api/search and a results route.
   }
 
   return (
     <>
       {/* ───────── Hero (sky) ───────── */}
-      <Section band="sky" className="pb-[var(--spacing-80)] pt-[var(--spacing-128)]">
-        <div className="flex min-h-[72vh] flex-col items-center justify-center gap-[var(--spacing-24)] text-center">
+      <Section tone="sky" className="pb-24 pt-20 sm:pt-28">
+        <div className="mx-auto flex max-w-4xl flex-col items-center text-center">
           <Reveal>
-            <Pill tone="accent" uppercase>
-              {t('hero.eyebrow')}
-            </Pill>
+            <Tag tone="accent">{t('hero.eyebrow')}</Tag>
           </Reveal>
 
           <Reveal delay={60}>
-            <h1 className="max-w-[16ch] font-[family-name:var(--font-serif)] text-[var(--text-heading)] font-light leading-[1.02] text-[var(--text)] md:text-[var(--text-heading-lg)] lg:text-[var(--text-display)]">
-              {t('hero.title.pre')}{' '}
-              <em className="text-accent not-italic">{t('hero.title.accent')}</em>{' '}
+            <h1 className="mt-6 text-balance text-5xl font-semibold tracking-[-0.045em] sm:text-6xl lg:text-display">
+              {t('hero.title.pre')} <span className="text-accent">{t('hero.title.accent')}</span>{' '}
               {t('hero.title.post')}
             </h1>
           </Reveal>
 
           <Reveal delay={120}>
-            <p className="mx-auto max-w-[560px] text-[var(--text-body-lg)] leading-[1.5] text-[var(--text-muted)]">
-              {t('hero.subtitle')}
-            </p>
+            <p className="mx-auto mt-6 max-w-xl text-lead text-fg-muted">{t('hero.subtitle')}</p>
           </Reveal>
 
           <Reveal delay={180} className="w-full">
             <form
               onSubmit={onSubmit}
-              className="mx-auto mt-[var(--spacing-8)] flex w-full max-w-[640px] items-center gap-[var(--spacing-8)] rounded-[var(--radius-inputs)] border border-[var(--hairline)] bg-[color-mix(in_srgb,var(--surface)_80%,transparent)] p-[var(--spacing-8)] shadow-[var(--shadow-float)] backdrop-blur-md"
+              role="search"
+              className="mx-auto mt-10 flex h-14 w-full max-w-2xl items-center gap-2 rounded-full border border-line-strong bg-card/70 pl-5 pr-2 shadow-cover backdrop-blur-xl transition-colors focus-within:border-fg/60"
             >
+              <SearchIcon size={20} className="shrink-0 text-fg-subtle" />
               <input
                 type="search"
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 placeholder={t('hero.search.placeholder')}
                 aria-label={t('hero.search.placeholder')}
-                className="min-w-0 flex-1 bg-transparent px-[var(--spacing-16)] py-[var(--spacing-8)] text-[var(--text-body)] text-[var(--text)] placeholder:text-[var(--text-muted)] focus:outline-none"
+                className="min-w-0 flex-1 bg-transparent text-body text-fg placeholder:text-fg-subtle focus:outline-none"
               />
-              <Button variant="accent" type="submit">
+              <Button type="submit" size="md">
                 {t('hero.search.button')}
               </Button>
             </form>
           </Reveal>
 
-          <Reveal delay={220}>
-            <p className="text-[var(--text-body-sm)] text-[var(--text-muted)]">
-              {t('hero.search.hint')}
-            </p>
-          </Reveal>
-
-          {/* scroll cue */}
-          <Reveal delay={320} className="mt-[var(--spacing-32)]">
-            <div className="flex flex-col items-center gap-[var(--spacing-8)] text-[var(--text-muted)]">
-              <span className="text-[var(--text-caption)] uppercase tracking-[0.12em]">
-                {t('hero.scroll')}
+          <Reveal delay={240}>
+            <div className="mt-5 flex flex-wrap items-center justify-center gap-2">
+              <span className="font-mono text-caption uppercase tracking-wider text-fg-subtle">
+                {t('hero.search.try')}
               </span>
-              <svg
-                width="20"
-                height="20"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="1.6"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                aria-hidden="true"
-                className="animate-bounce"
-              >
-                <path d="M12 5v14M6 13l6 6 6-6" />
-              </svg>
+              {CHIPS.map((key) => (
+                <button
+                  key={key}
+                  type="button"
+                  onClick={() => setQuery(t(key))}
+                  className="rounded-full border border-line px-3 py-1.5 text-caption text-fg-muted transition-colors hover:border-line-strong hover:text-fg"
+                >
+                  {t(key)}
+                </button>
+              ))}
             </div>
           </Reveal>
         </div>
+
+        {/* Stats strip (design_v3 trust strip, as facts about the product) */}
+        <Reveal delay={300} className="mt-20">
+          <ul className="grid grid-cols-2 gap-y-8 border-y border-line py-8 md:grid-cols-4">
+            {STATS.map((key, i) => (
+              <li
+                key={key}
+                className={`px-4 text-center md:px-8 ${i > 0 ? 'md:border-l md:border-line' : ''}`}
+              >
+                <p className="font-mono text-title font-medium text-fg">
+                  {t(`stats.${key}.value`)}
+                </p>
+                <p className="mt-1 text-caption text-fg-muted">{t(`stats.${key}.label`)}</p>
+              </li>
+            ))}
+          </ul>
+        </Reveal>
       </Section>
 
-      {/* ───────── How it works (surface) ───────── */}
-      <Section band="surface" className="py-[var(--spacing-80)]">
-        <Reveal className="flex flex-col items-center gap-[var(--spacing-8)] text-center">
-          <Pill tone="surface" uppercase>
-            {t('how.eyebrow')}
-          </Pill>
-          <h2 className="font-[family-name:var(--font-serif)] text-[var(--text-heading-sm)] font-normal text-[var(--text)] md:text-[var(--text-heading)]">
-            {t('how.title')}
-          </h2>
+      {/* ───────── Genre shelves (solid) ───────── */}
+      <Section tone="solid" id="genres" className="py-28">
+        <Reveal className="max-w-2xl">
+          <Tag>{t('shelves.eyebrow')}</Tag>
+          <h2 className={`mt-4 ${h2Class}`}>{t('shelves.title')}</h2>
+          <p className="mt-4 text-lead text-fg-muted">{t('shelves.subtitle')}</p>
         </Reveal>
 
-        <div className="mt-[var(--spacing-48)] grid gap-[var(--spacing-24)] md:grid-cols-3">
-          {[1, 2, 3].map((n, i) => (
+        <div className="mt-14 flex flex-col gap-14">
+          {shelves.map(({ def, books }) => (
+            <Reveal key={def.id}>
+              <BookShelf
+                id={`shelf-${def.id}`}
+                title={t(`shelf.${def.id}.title`)}
+                subtitle={t(`shelf.${def.id}.subtitle`)}
+                books={books}
+              />
+            </Reveal>
+          ))}
+        </div>
+      </Section>
+
+      {/* ───────── How it works (sky) ───────── */}
+      <Section tone="sky" id="how" className="py-28">
+        <Reveal className="mx-auto max-w-2xl text-center">
+          <Tag>{t('how.eyebrow')}</Tag>
+          <h2 className={`mt-4 text-balance ${h2Class}`}>{t('how.title')}</h2>
+        </Reveal>
+
+        <div className="mt-14 grid gap-4 md:grid-cols-3">
+          {[
+            { n: 1, icon: <SearchIcon size={20} /> },
+            { n: 2, icon: <BookOpenIcon size={20} /> },
+            { n: 3, icon: <HeartIcon size={20} /> },
+          ].map(({ n, icon }, i) => (
             <Reveal key={n} delay={i * 90}>
-              <Card className="flex h-full flex-col gap-[var(--spacing-12)]">
-                <span className="flex h-10 w-10 items-center justify-center rounded-[var(--radius-tags)] border border-[color-mix(in_srgb,var(--accent)_40%,transparent)] bg-[color-mix(in_srgb,var(--accent)_14%,transparent)] font-[family-name:var(--font-serif)] text-[var(--text-subheading)] text-[var(--accent)]">
-                  {n}
-                </span>
-                <h3 className="font-[family-name:var(--font-sans)] text-[var(--text-subheading)] font-semibold text-[var(--text)]">
-                  {t(`how.step${n}.title`)}
-                </h3>
-                <p className="text-[var(--text-body-sm)] leading-relaxed text-[var(--text-muted)]">
-                  {t(`how.step${n}.body`)}
-                </p>
+              <Card variant="glass" className="flex h-full flex-col gap-4">
+                <div className="flex items-center justify-between">
+                  <span className={iconBadge}>{icon}</span>
+                  <span className="font-mono text-caption text-fg-subtle">0{n}</span>
+                </div>
+                <h3 className="text-lead font-semibold text-fg">{t(`how.step${n}.title`)}</h3>
+                <p className="text-body-sm text-fg-muted">{t(`how.step${n}.body`)}</p>
               </Card>
             </Reveal>
           ))}
         </div>
       </Section>
 
-      {/* ───────── Why Blooking (sky, split) ───────── */}
-      <Section band="sky" className="py-[var(--spacing-128)]">
-        <div className="grid items-center gap-[var(--spacing-48)] md:grid-cols-2">
-          <Reveal className="flex flex-col gap-[var(--spacing-16)]">
-            <Pill tone="accent" uppercase>
-              {t('feature.eyebrow')}
-            </Pill>
-            <h2 className="font-[family-name:var(--font-serif)] text-[var(--text-heading-sm)] font-light leading-[1.1] text-[var(--text)] md:text-[var(--text-heading)]">
-              {t('feature.title')}
-            </h2>
-            <p className="max-w-[48ch] text-[var(--text-body-lg)] leading-[1.5] text-[var(--text-muted)]">
-              {t('feature.body')}
-            </p>
-            <ul className="mt-[var(--spacing-8)] flex flex-col gap-[var(--spacing-12)]">
-              {['feature.point1', 'feature.point2', 'feature.point3'].map((key) => (
-                <li key={key} className="flex items-start gap-[var(--spacing-12)]">
-                  <svg
-                    width="20"
-                    height="20"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="var(--accent)"
-                    strokeWidth="1.8"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    aria-hidden="true"
-                    className="mt-[2px] shrink-0"
-                  >
-                    <path d="M20 6 9 17l-5-5" />
-                  </svg>
-                  <span className="text-[var(--text-body)] text-[var(--text)]">{t(key)}</span>
-                </li>
-              ))}
-            </ul>
+      {/* ───────── Why Blooking: bento (solid) ───────── */}
+      <Section tone="solid" id="why" className="py-28">
+        <Reveal className="max-w-2xl">
+          <Tag tone="accent">{t('why.eyebrow')}</Tag>
+          <h2 className={`mt-4 text-balance ${h2Class}`}>{t('why.title')}</h2>
+        </Reveal>
+
+        <div className="mt-14 grid gap-4 md:grid-cols-6">
+          {/* Tile 1: hybrid search preview */}
+          <Reveal className="md:col-span-4">
+            <Card className="flex h-full flex-col gap-6">
+              <div>
+                <h3 className="text-lead font-semibold text-fg">{t('why.tile1.title')}</h3>
+                <p className="mt-2 max-w-xl text-body-sm text-fg-muted">{t('why.tile1.body')}</p>
+              </div>
+              <div className="rounded-xl border border-line bg-nav/60 p-4">
+                <div className="flex items-center gap-2 border-b border-line pb-3 font-mono text-body-sm text-fg">
+                  <SearchIcon className="shrink-0 text-fg-subtle" />
+                  <span className="truncate">{t('why.tile1.query')}</span>
+                </div>
+                <ul>
+                  {previewBooks.map((b, i) => (
+                    <li
+                      key={b.id}
+                      className="flex items-center gap-3 border-b border-line py-3 last:border-b-0 last:pb-0"
+                    >
+                      <span className="w-5 font-mono text-caption text-fg-subtle">0{i + 1}</span>
+                      {b.coverImg && (
+                        <img
+                          src={b.coverImg}
+                          alt=""
+                          loading="lazy"
+                          referrerPolicy="no-referrer"
+                          className="aspect-[2/3] w-8 shrink-0 rounded object-cover ring-1 ring-line"
+                        />
+                      )}
+                      <div className="min-w-0">
+                        <p className="truncate text-body-sm font-medium text-fg">{b.title}</p>
+                        <p className="truncate text-caption text-fg-muted">{b.author}</p>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </Card>
           </Reveal>
 
-          {/* floating glass preview card */}
-          <Reveal delay={120}>
-            <Card variant="glass" className="flex flex-col gap-[var(--spacing-16)]">
-              <div className="flex items-center gap-[var(--spacing-8)]">
-                <span className="h-2.5 w-2.5 rounded-full bg-[var(--accent)]" />
-                <span className="text-[var(--text-caption)] uppercase tracking-[0.12em] text-[var(--text-muted)]">
-                  {t('nav.announcement')}
-                </span>
+          {/* Tile 2: multilingual */}
+          <Reveal delay={90} className="md:col-span-2">
+            <Card className="flex h-full flex-col gap-4">
+              <span className={iconBadge}>
+                <GlobeIcon size={20} />
+              </span>
+              <h3 className="text-lead font-semibold text-fg">{t('why.tile2.title')}</h3>
+              <p className="text-body-sm text-fg-muted">{t('why.tile2.body')}</p>
+              <div className="mt-auto flex gap-2">
+                <Tag>EN</Tag>
+                <Tag>PT</Tag>
               </div>
-              <div className="rounded-[var(--radius-images)] border border-[var(--hairline)] bg-[var(--surface-2)] px-[var(--spacing-16)] py-[var(--spacing-12)] text-[var(--text-muted)]">
-                “young wizard at a magic school”
-              </div>
-              <div className="grid grid-cols-3 gap-[var(--spacing-12)]">
-                {MOCK_BOOK_SUMMARIES.slice(1, 4).map((b) => (
-                  <div
-                    key={b.id}
-                    className="overflow-hidden rounded-[var(--radius-images)] border border-[var(--hairline)]"
-                  >
-                    {b.coverImg && (
-                      <img
-                        src={b.coverImg}
-                        alt=""
-                        className="aspect-[2/3] w-full object-cover"
-                        loading="lazy"
-                      />
-                    )}
-                  </div>
-                ))}
+            </Card>
+          </Reveal>
+
+          {/* Tile 3: learns your taste */}
+          <Reveal className="md:col-span-2">
+            <Card className="flex h-full flex-col gap-4">
+              <span className={iconBadge}>
+                <HeartIcon size={20} />
+              </span>
+              <h3 className="text-lead font-semibold text-fg">{t('why.tile3.title')}</h3>
+              <p className="text-body-sm text-fg-muted">{t('why.tile3.body')}</p>
+            </Card>
+          </Reveal>
+
+          {/* Tile 4: one command (design_v3 recessed code field) */}
+          <Reveal delay={90} className="md:col-span-4">
+            <Card className="flex h-full flex-col gap-4">
+              <h3 className="text-lead font-semibold text-fg">{t('why.tile4.title')}</h3>
+              <p className="max-w-xl text-body-sm text-fg-muted">{t('why.tile4.body')}</p>
+              <div className="mt-auto rounded-xl border border-line bg-nav/60 px-4 py-3 font-mono text-body-sm text-fg-muted">
+                <span className="select-none text-fg-subtle">$ </span>
+                docker compose up -d
               </div>
             </Card>
           </Reveal>
         </div>
       </Section>
 
-      {/* ───────── Popular grid (surface) ───────── */}
-      <Section band="surface" className="py-[var(--spacing-80)]">
-        <Reveal className="flex flex-col items-center gap-[var(--spacing-8)] text-center">
-          <h2 className="font-[family-name:var(--font-serif)] text-[var(--text-heading-sm)] font-normal text-[var(--text)] md:text-[var(--text-heading)]">
-            {t('section.popular.title')}
-          </h2>
-          <p className="text-[var(--text-body)] text-[var(--text-muted)]">
-            {t('section.popular.subtitle')}
-          </p>
-        </Reveal>
-
-        <div className="mt-[var(--spacing-48)] grid grid-cols-2 gap-[var(--spacing-24)] sm:grid-cols-3 lg:grid-cols-4">
-          {MOCK_BOOK_SUMMARIES.map((book, i) => (
-            <BookCard key={book.id} book={book} index={i} />
-          ))}
-        </div>
-      </Section>
-
       {/* ───────── CTA (sky) ───────── */}
-      <Section band="sky" className="py-[var(--spacing-128)]">
-        <Reveal>
-          <Card
-            variant="glass"
-            className="flex flex-col items-center gap-[var(--spacing-16)] px-[var(--spacing-32)] py-[var(--spacing-64)] text-center"
-          >
-            <h2 className="max-w-[20ch] font-[family-name:var(--font-serif)] text-[var(--text-heading-sm)] font-light text-[var(--text)] md:text-[var(--text-heading)]">
-              {t('cta.title')}
-            </h2>
-            <p className="max-w-[48ch] text-[var(--text-body-lg)] text-[var(--text-muted)]">
-              {t('cta.body')}
-            </p>
-            <div className="mt-[var(--spacing-8)] flex flex-wrap items-center justify-center gap-[var(--spacing-12)]">
-              <Button variant="accent" type="button" disabled title="Coming soon">
-                {t('cta.button')}
-              </Button>
-              <Button variant="ghost" type="button" disabled title="Coming soon">
-                {t('cta.secondary')}
-              </Button>
-            </div>
-          </Card>
+      <Section tone="sky" className="py-32">
+        <Reveal className="mx-auto flex max-w-2xl flex-col items-center text-center">
+          <h2 className={`text-balance ${h2Class}`}>{t('cta.title')}</h2>
+          <p className="mt-4 text-lead text-fg-muted">{t('cta.body')}</p>
+          <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
+            <Button size="lg" type="button" title={t('common.soon')}>
+              {t('cta.button')}
+            </Button>
+            <Button size="lg" variant="outline" type="button" title={t('common.soon')}>
+              {t('cta.secondary')}
+            </Button>
+          </div>
         </Reveal>
       </Section>
     </>
