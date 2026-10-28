@@ -9,6 +9,8 @@ import { Card } from '@/components/ui/Card';
 import { Reveal } from '@/components/ui/Reveal';
 import { Tag } from '@/components/ui/Tag';
 import { GenreShelf } from '@/components/book/GenreShelf';
+import { RecommendationsShelf } from '@/components/book/RecommendationsShelf';
+import { useAuth } from '@/auth/AuthContext';
 import { BookOpenIcon, GlobeIcon, HeartIcon, SearchIcon } from '@/components/ui/Icon';
 
 const STATS = ['books', 'lang', 'dim', 'rrf'] as const;
@@ -115,6 +117,9 @@ export function HomePage() {
           </ul>
         </Reveal>
       </Section>
+
+      {/* ───────── For you (sky, signed-in only) ───────── */}
+      <RecommendationsSection />
 
       {/* ───────── Genre shelves (solid, live API) ───────── */}
       <Section tone="solid" id="genres" className="py-28">
@@ -284,5 +289,16 @@ export function HomePage() {
         </Reveal>
       </Section>
     </>
+  );
+}
+
+/** The "For you" band: only occupies space when there is a signed-in user. */
+function RecommendationsSection() {
+  const { isAuthenticated } = useAuth();
+  if (!isAuthenticated) return null;
+  return (
+    <Section tone="sky" className="pt-24">
+      <RecommendationsShelf />
+    </Section>
   );
 }

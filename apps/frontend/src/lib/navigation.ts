@@ -60,3 +60,17 @@ export function readFromState(state: unknown): FromState {
   }
   return {};
 }
+
+/**
+ * Validate a `?from=` redirect target so it can only ever point inside the app.
+ * Rejects external URLs, protocol-relative URLs ("//evil.com"), and anything
+ * that isn't a plain in-app path. Falls back to `fallback` (home).
+ */
+export function safeRedirect(from: string | null | undefined, fallback = '/'): string {
+  if (!from) return fallback;
+  // Must start with a single "/", and not "//" (protocol-relative) or "/\".
+  if (!from.startsWith('/') || from.startsWith('//') || from.startsWith('/\\')) return fallback;
+  // No scheme (http:, javascript:, etc.) — a plain path has none before any slash.
+  if (/^\/[^/]*:/.test(from)) return fallback;
+  return from;
+}

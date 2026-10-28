@@ -1,12 +1,14 @@
 import { useEffect, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useI18n } from '@/i18n/I18nProvider';
+import { useAuth } from '@/auth/AuthContext';
 import { BrandMark } from '@/components/ui/BrandMark';
-import { Button } from '@/components/ui/Button';
-import { CloseIcon, MenuIcon, SearchIcon } from '@/components/ui/Icon';
+import { Button, buttonClasses } from '@/components/ui/Button';
+import { CloseIcon, HeartIcon, MenuIcon, SearchIcon, SparkleIcon } from '@/components/ui/Icon';
 import { useSearchShortcut } from '@/hooks/useSearchShortcut';
 import { LanguageSwitcher } from './LanguageSwitcher';
 import { ThemeToggle } from './ThemeToggle';
+import { UserMenu } from './UserMenu';
 
 // `to` is a router route; `href` is a homepage hash anchor (browser-handled).
 const NAV_LINKS: Array<{ key: string; to?: string; href?: string }> = [
@@ -30,10 +32,25 @@ const linkClass =
 export function SiteHeader() {
   const { t } = useI18n();
   const navigate = useNavigate();
+  const location = useLocation();
+  const { isAuthenticated, user, logout } = useAuth();
   const [open, setOpen] = useState(false);
 
   // "/" jumps to search from anywhere (except while typing in a field).
   useSearchShortcut(() => navigate('/search'));
+
+  // Carry the current location to the auth pages so they can return here.
+  const authFrom = `${location.pathname}${location.search}`;
+  const loginHref = authFrom === '/' ? '/login' : `/login?from=${encodeURIComponent(authFrom)}`;
+  const registerHref =
+    authFrom === '/' ? '/register' : `/register?from=${encodeURIComponent(authFrom)}`;
+  const userName = user?.displayName?.trim() || user?.username || '';
+
+  async function onMobileLogout() {
+    setOpen(false);
+    await logout();
+    navigate('/');
+  }
 
   useEffect(() => {
     if (!open) return;
@@ -80,12 +97,18 @@ export function SiteHeader() {
           <LanguageSwitcher />
           <ThemeToggle />
           <span className="mx-1 h-5 w-px bg-line" aria-hidden="true" />
-          <Button variant="ghost" size="sm" type="button" title={t('common.soon')}>
-            {t('nav.login')}
-          </Button>
-          <Button size="sm" type="button" title={t('common.soon')}>
-            {t('nav.signup')}
-          </Button>
+          {isAuthenticated ? (
+            <UserMenu />
+          ) : (
+            <>
+              <Link to={loginHref} className={buttonClasses({ variant: 'ghost', size: 'sm' })}>
+                {t('nav.login')}
+              </Link>
+              <Link to={registerHref} className={buttonClasses({ size: 'sm' })}>
+                {t('nav.signup')}
+              </Link>
+            </>
+          )}
         </div>
 
         <button
@@ -125,18 +148,55 @@ export function SiteHeader() {
                 );
               })}
             </nav>
+            {isAuthenticated && (
+              <nav className="flex flex-col">
+                <Link
+                  to="/favorites"
+                  onClick={() => setOpen(false)}
+                  className="flex items-center gap-3 border-b border-line py-3 text-lead font-medium text-fg"
+                >
+                  <HeartIcon size={20} />
+                  {t('nav.favorites')}
+                </Link>
+                <Link
+                  to="/recommendations"
+                  onClick={() => setOpen(false)}
+                  className="flex items-center gap-3 border-b border-line py-3 text-lead font-medium text-fg"
+                >
+                  <SparkleIcon size={20} />
+                  {t('nav.recommendations')}
+                </Link>
+              </nav>
+            )}
             <div className="flex items-center gap-2">
               <LanguageSwitcher />
               <ThemeToggle />
             </div>
-            <div className="flex items-center gap-2">
-              <Button variant="outline" type="button" className="flex-1" title={t('common.soon')}>
-                {t('nav.login')}
-              </Button>
-              <Button type="button" className="flex-1" title={t('common.soon')}>
-                {t('nav.signup')}
-              </Button>
-            </div>
+            {isAuthenticated ? (
+              <div className="flex items-center justify-between gap-3">
+                <span className="truncate text-body-sm text-fg-muted">{userName}</span>
+                <Button variant="outline" type="button" onClick={onMobileLogout}>
+                  {t('nav.logout')}
+                </Button>
+              </div>
+            ) : (
+              <div className="flex items-center gap-2">
+                <Link
+                  to={loginHref}
+                  onClick={() => setOpen(false)}
+                  className={buttonClasses({ variant: 'outline', className: 'flex-1' })}
+                >
+                  {t('nav.login')}
+                </Link>
+                <Link
+                  to={registerHref}
+                  onClick={() => setOpen(false)}
+                  className={buttonClasses({ className: 'flex-1' })}
+                >
+                  {t('nav.signup')}
+                </Link>
+              </div>
+            )}
           </div>
         </div>
       )}

@@ -7,11 +7,11 @@ import { displayAuthors } from '@/lib/authors';
 import { bookSections } from '@/lib/bookSections';
 import { Section } from '@/components/layout/Section';
 import { BackLink } from '@/components/ui/BackLink';
-import { Button, buttonClasses } from '@/components/ui/Button';
+import { buttonClasses } from '@/components/ui/Button';
 import { Spinner } from '@/components/ui/Spinner';
 import { ErrorState } from '@/components/ui/StateView';
-import { HeartIcon } from '@/components/ui/Icon';
 import { AwardsSection } from '@/components/book/AwardsSection';
+import { FavoriteButton } from '@/components/book/FavoriteButton';
 import { ChipRow } from '@/components/book/ChipRow';
 import { ConstellationFacts } from '@/components/book/ConstellationFacts';
 import { Description } from '@/components/book/Description';
@@ -133,10 +133,7 @@ function BookContent({ book }: { book: BookDetail }) {
           )}
 
           <div className="mt-6 flex flex-wrap items-center gap-3">
-            <Button type="button" title={t('common.soon')} className="gap-2">
-              <HeartIcon />
-              {t('detail.favorite')}
-            </Button>
+            <FavoriteButton bookId={book.id} />
             <Link
               to="/books"
               state={{ from: `${location.pathname}${location.search}` }}
