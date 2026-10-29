@@ -56,7 +56,7 @@ localhost defaults are baked in, matching `docker-compose.yml`):
 | Method | Path | Description |
 | :--- | :--- | :--- |
 | `GET` | `/api/health` | Simple application liveness check |
-| `GET` | `/api/books` | List books (paginated); filters: `q`, `author`, `genre` |
+| `GET` | `/api/books` | List books (paginated); filters: `q`, `author`, `genre` (repeatable) + `genreMatch` |
 | `GET` | `/api/books/{id}` | Book detail |
 | `GET` | `/api/search?q=&limit=` | Hybrid search (semantic + keyword, RRF-fused) |
 | `POST` | `/api/auth/register` | Create account → access + refresh token |
@@ -83,6 +83,11 @@ curl "http://localhost:8080/api/books"
 
 # Filter by genre + free-text, page 2 of 10
 curl "http://localhost:8080/api/books?genre=Fantasy&q=harry&page=1&size=10"
+
+# Multiple genres. genreMatch=all (default) -> books with EVERY genre;
+# genreMatch=any -> books with at least one.
+curl "http://localhost:8080/api/books?genre=Fantasy&genre=Dystopia"            # all (default)
+curl "http://localhost:8080/api/books?genre=Fantasy&genre=Romance&genreMatch=any"
 
 # Sort by rating descending
 curl "http://localhost:8080/api/books?sort=rating,desc"

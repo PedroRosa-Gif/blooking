@@ -1,5 +1,7 @@
 package dev.blooking.backend.book;
 
+import java.util.List;
+
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
@@ -10,6 +12,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import dev.blooking.backend.book.BookService.GenreMatch;
 import dev.blooking.backend.book.dto.BookDetailResponse;
 import dev.blooking.backend.book.dto.BookSummaryResponse;
 import dev.blooking.backend.common.security.CurrentUser;
@@ -41,13 +44,23 @@ public class BookController {
         this.eventPublisher = eventPublisher;
     }
 
+    /**
+     * List books (US02) with optional filters (US03).
+     *
+     * <p>{@code genre} is repeatable (e.g. {@code ?genre=Fantasy&genre=Romance}).
+     * {@code genreMatch} selects how multiple genres combine: {@code all}
+     * (default — the book has every genre) or {@code any} (at least one). A
+     * legacy single {@code genre=} still works.
+     */
     @GetMapping
     public Page<BookSummaryResponse> list(
             @RequestParam(required = false) String q,
             @RequestParam(required = false) String author,
-            @RequestParam(required = false) String genre,
+            @RequestParam(name = "genre", required = false) List<String> genres,
+            @RequestParam(name = "genreMatch", required = false, defaultValue = "all") String genreMatch,
             @PageableDefault(size = 20, sort = "num_ratings", direction = Sort.Direction.DESC) Pageable pageable) {
-        return bookService.list(q, author, genre, capPageSize(pageable));
+        GenreMatch match = "any".equalsIgnoreCase(genreMatch) ? GenreMatch.ANY : GenreMatch.ALL;
+        return bookService.list(q, author, genres, match, capPageSize(pageable));
     }
 
     @GetMapping("/{id}")

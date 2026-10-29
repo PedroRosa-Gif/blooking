@@ -23,6 +23,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
+import dev.blooking.backend.book.BookService.GenreMatch;
 import dev.blooking.backend.book.dto.BookDetailResponse;
 import dev.blooking.backend.book.dto.BookSummaryResponse;
 import dev.blooking.backend.common.exception.ResourceNotFoundException;
@@ -62,7 +63,8 @@ class BookControllerTest {
     void list_returnsPagedBooks() throws Exception {
         Page<BookSummaryResponse> page =
                 new PageImpl<>(List.of(sampleSummary()), PageRequest.of(0, 20), 1);
-        when(bookService.list(isNull(), isNull(), isNull(), any(Pageable.class))).thenReturn(page);
+        when(bookService.list(isNull(), isNull(), any(), any(GenreMatch.class), any(Pageable.class)))
+                .thenReturn(page);
 
         mockMvc.perform(get("/api/books"))
                 .andExpect(status().isOk())
@@ -75,7 +77,9 @@ class BookControllerTest {
     void list_passesFiltersToService() throws Exception {
         Page<BookSummaryResponse> page =
                 new PageImpl<>(List.of(sampleSummary()), PageRequest.of(0, 20), 1);
-        when(bookService.list(eq("harry"), eq("rowling"), eq("Fantasy"), any(Pageable.class)))
+        when(bookService.list(
+                        eq("harry"), eq("rowling"), eq(List.of("Fantasy")), eq(GenreMatch.ALL),
+                        any(Pageable.class)))
                 .thenReturn(page);
 
         mockMvc.perform(get("/api/books")
@@ -84,20 +88,44 @@ class BookControllerTest {
                         .param("genre", "Fantasy"))
                 .andExpect(status().isOk());
 
-        verify(bookService).list(eq("harry"), eq("rowling"), eq("Fantasy"), any(Pageable.class));
+        verify(bookService).list(
+                eq("harry"), eq("rowling"), eq(List.of("Fantasy")), eq(GenreMatch.ALL),
+                any(Pageable.class));
+    }
+
+    @Test
+    void list_passesMultipleGenresAndMatchMode() throws Exception {
+        Page<BookSummaryResponse> page =
+                new PageImpl<>(List.of(sampleSummary()), PageRequest.of(0, 20), 1);
+        when(bookService.list(
+                        isNull(), isNull(), eq(List.of("Fantasy", "Romance")), eq(GenreMatch.ANY),
+                        any(Pageable.class)))
+                .thenReturn(page);
+
+        mockMvc.perform(get("/api/books")
+                        .param("genre", "Fantasy")
+                        .param("genre", "Romance")
+                        .param("genreMatch", "any"))
+                .andExpect(status().isOk());
+
+        verify(bookService).list(
+                isNull(), isNull(), eq(List.of("Fantasy", "Romance")), eq(GenreMatch.ANY),
+                any(Pageable.class));
     }
 
     @Test
     void list_capsPageSizeAt100() throws Exception {
         Page<BookSummaryResponse> page =
                 new PageImpl<>(List.of(sampleSummary()), PageRequest.of(0, 100), 1);
-        when(bookService.list(isNull(), isNull(), isNull(), any(Pageable.class))).thenReturn(page);
+        when(bookService.list(isNull(), isNull(), any(), any(GenreMatch.class), any(Pageable.class)))
+                .thenReturn(page);
 
         mockMvc.perform(get("/api/books").param("size", "500"))
                 .andExpect(status().isOk());
 
         ArgumentCaptor<Pageable> captor = ArgumentCaptor.forClass(Pageable.class);
-        verify(bookService).list(isNull(), isNull(), isNull(), captor.capture());
+        verify(bookService).list(
+                isNull(), isNull(), any(), any(GenreMatch.class), captor.capture());
         // The controller must cap the requested size (500) down to the max (100).
         org.assertj.core.api.Assertions.assertThat(captor.getValue().getPageSize()).isEqualTo(100);
     }
