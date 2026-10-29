@@ -24,6 +24,10 @@ export const api = axios.create({
   headers: {
     'Content-Type': 'application/json',
   },
+  // Serialize array params as repeated keys (`genre=a&genre=b`) rather than
+  // axios's default bracketed form (`genre[]=a`), which is what Spring's
+  // `@RequestParam List<String>` binding expects.
+  paramsSerializer: { indexes: null },
 });
 
 // Attach the in-memory access token to every request when present.

@@ -32,8 +32,13 @@ function CatalogView() {
   const { state, update, toggleGenre, clear, hasFilters } = useCatalogParams();
 
   const filters = useMemo(
-    () => ({ author: state.author, genres: state.genres, sort: state.sort }),
-    [state.author, state.genres, state.sort],
+    () => ({
+      author: state.author,
+      genres: state.genres,
+      genreMatch: state.genreMatch,
+      sort: state.sort,
+    }),
+    [state.author, state.genres, state.genreMatch, state.sort],
   );
 
   const {

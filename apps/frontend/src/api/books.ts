@@ -2,20 +2,23 @@ import { api } from '@/lib/axios';
 import { normalizePage } from '@/lib/page';
 import type { BookDetail, BookSummary, Page, RawPage } from '@/types/api';
 
-/** Filters for the catalog. `genres` is an array in the UI; see note below. */
+/** How to combine multiple selected genres. Mirrors the backend `genreMatch`. */
+export type GenreMatch = 'all' | 'any';
+
+/** The default: a book must have every selected genre. */
+export const DEFAULT_GENRE_MATCH: GenreMatch = 'all';
+
+/** Filters for the catalog. */
 export interface BookFilters {
   q?: string;
   author?: string;
-  /**
-   * Selected genres. The UI supports multiple, but the backend currently
-   * accepts a single `genre` param, so only the FIRST is sent (see
-   * {@link toBookParams}).
-   *
-   * TODO(backend): make GET /api/books accept multiple genres (repeated param
-   * or comma-separated) and match ANY of them; then send the whole array here.
-   * Tracked as a project learning.
-   */
+  /** Selected genres. All are sent to the backend as repeated `genre` params. */
   genres?: string[];
+  /**
+   * How to combine {@link genres}: `all` (default) requires every genre, `any`
+   * requires at least one. Only meaningful when 2+ genres are selected.
+   */
+  genreMatch?: GenreMatch;
   /** Spring sort expression, e.g. "rating,desc". */
   sort?: string;
 }
@@ -25,11 +28,15 @@ export interface BookListParams extends BookFilters {
   size?: number;
 }
 
-/** Backend query params for `/api/books` — the wire shape (single `genre`). */
+/**
+ * Backend query params for `/api/books` — the wire shape. `genre` is a repeated
+ * param (array), matched according to `genreMatch` (`all` | `any`).
+ */
 export interface BookQueryParams {
   q?: string;
   author?: string;
-  genre?: string;
+  genre?: string[];
+  genreMatch?: GenreMatch;
   sort?: string;
   page?: number;
   size?: number;
@@ -40,9 +47,15 @@ export function toBookParams(params: BookListParams): BookQueryParams {
   const out: BookQueryParams = {};
   if (params.q?.trim()) out.q = params.q.trim();
   if (params.author?.trim()) out.author = params.author.trim();
-  // Only the first genre is sent until the backend supports multiple.
-  const firstGenre = params.genres?.[0]?.trim();
-  if (firstGenre) out.genre = firstGenre;
+  const genres = params.genres?.map((g) => g.trim()).filter(Boolean) ?? [];
+  if (genres.length > 0) {
+    out.genre = genres;
+    // Only disambiguate when it actually matters (2+ genres) and the mode is
+    // non-default, keeping the query string clean for the common case.
+    if (genres.length > 1 && params.genreMatch && params.genreMatch !== DEFAULT_GENRE_MATCH) {
+      out.genreMatch = params.genreMatch;
+    }
+  }
   if (params.sort) out.sort = params.sort;
   if (params.page != null) out.page = params.page;
   if (params.size != null) out.size = params.size;

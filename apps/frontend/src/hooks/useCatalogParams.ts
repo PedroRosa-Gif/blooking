@@ -1,6 +1,6 @@
 import { useCallback, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import type { BookFilters } from '@/api/books';
+import { DEFAULT_GENRE_MATCH, type BookFilters, type GenreMatch } from '@/api/books';
 import { DEFAULT_SORT } from '@/lib/genres';
 
 /**
@@ -14,6 +14,7 @@ import { DEFAULT_SORT } from '@/lib/genres';
 export interface CatalogState extends BookFilters {
   author: string;
   genres: string[];
+  genreMatch: GenreMatch;
   sort: string;
 }
 
@@ -24,6 +25,7 @@ export function useCatalogParams() {
     () => ({
       author: searchParams.get('author') ?? '',
       genres: searchParams.getAll('genre'),
+      genreMatch: searchParams.get('genreMatch') === 'any' ? 'any' : DEFAULT_GENRE_MATCH,
       sort: searchParams.get('sort') ?? DEFAULT_SORT,
     }),
     [searchParams],
@@ -47,6 +49,11 @@ export function useCatalogParams() {
             next.delete('genre');
             for (const g of patch.genres ?? []) next.append('genre', g);
           }
+          if ('genreMatch' in patch) {
+            // Only persist the non-default mode to keep URLs clean.
+            if (patch.genreMatch === 'any') next.set('genreMatch', 'any');
+            else next.delete('genreMatch');
+          }
           return next;
         },
         { replace: true },
@@ -60,9 +67,16 @@ export function useCatalogParams() {
       const set = new Set(state.genres);
       if (set.has(genre)) set.delete(genre);
       else set.add(genre);
-      update({ genres: [...set] });
+      const genres = [...set];
+      // The match mode only matters with 2+ genres; reset it once it no longer
+      // applies so a stale `genreMatch=any` doesn't linger in the URL.
+      const patch: Partial<CatalogState> = { genres };
+      if (genres.length < 2 && state.genreMatch !== DEFAULT_GENRE_MATCH) {
+        patch.genreMatch = DEFAULT_GENRE_MATCH;
+      }
+      update(patch);
     },
-    [state.genres, update],
+    [state.genres, state.genreMatch, update],
   );
 
   const clear = useCallback(() => setSearchParams({}, { replace: true }), [setSearchParams]);
