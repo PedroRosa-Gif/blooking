@@ -44,8 +44,16 @@ public class AuthService {
         this.accessExpirationSeconds = jwtProperties.accessExpirationMs() / 1000;
     }
 
+    /**
+     * The outcome of an auth operation: the JSON {@link AuthResponse} body (which
+     * carries only the access token) plus the raw refresh token, which the web
+     * layer puts into an HttpOnly cookie rather than the body.
+     */
+    public record AuthResult(AuthResponse body, String rawRefreshToken) {
+    }
+
     @Transactional
-    public AuthResponse register(String username, String password, String displayName) {
+    public AuthResult register(String username, String password, String displayName) {
         if (userRepository.existsByUsername(username)) {
             throw new ConflictException("Username already taken");
         }
@@ -55,7 +63,7 @@ public class AuthService {
     }
 
     @Transactional
-    public AuthResponse login(String username, String password) {
+    public AuthResult login(String username, String password) {
         User user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new BadCredentialsException("Invalid username or password"));
         if (!passwordEncoder.matches(password, user.getPasswordHash())) {
@@ -65,14 +73,18 @@ public class AuthService {
     }
 
     @Transactional
-    public AuthResponse refresh(String rawRefreshToken) {
+    public AuthResult refresh(String rawRefreshToken) {
+        if (rawRefreshToken == null || rawRefreshToken.isBlank()) {
+            throw new BadCredentialsException("Missing refresh token");
+        }
         RefreshToken current = refreshTokenService.findActive(rawRefreshToken)
                 .orElseThrow(() -> new BadCredentialsException("Invalid or expired refresh token"));
         User user = userRepository.findById(current.getUserId())
                 .orElseThrow(() -> new BadCredentialsException("Invalid refresh token"));
         IssuedToken rotated = refreshTokenService.rotate(current);
         String access = jwtService.generateAccessToken(user);
-        return AuthResponse.of(access, rotated.rawToken(), accessExpirationSeconds);
+        return new AuthResult(
+                AuthResponse.of(access, accessExpirationSeconds), rotated.rawToken());
     }
 
     @Transactional
@@ -86,10 +98,11 @@ public class AuthService {
         return userRepository.findById(id);
     }
 
-    private AuthResponse issueTokens(User user) {
+    private AuthResult issueTokens(User user) {
         String access = jwtService.generateAccessToken(user);
         IssuedToken refresh = refreshTokenService.issue(user.getId());
-        return AuthResponse.of(access, refresh.rawToken(), accessExpirationSeconds);
+        return new AuthResult(
+                AuthResponse.of(access, accessExpirationSeconds), refresh.rawToken());
     }
 
     /** Raised on invalid credentials or invalid/expired refresh token (→ 401). */
