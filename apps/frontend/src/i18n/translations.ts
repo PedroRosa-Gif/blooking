@@ -292,7 +292,6 @@ const en: Dict = {
   'recs.seeAll': 'See all',
   'recs.page.subtitle': 'Personalized from your favorites. Favorite more books to refine them.',
   'recs.page.note': 'Recommendations update as you favorite and view books.',
-  'recs.becauseYouLiked.heading': 'Because you liked',
   'recs.becauseYouLiked.title': 'Because you liked {title}',
   'recs.becauseYouLiked.subtitle': 'Similar to this favorite by {author}.',
 };
@@ -579,7 +578,6 @@ const pt: Dict = {
   'recs.page.subtitle':
     'Personalizado a partir dos seus favoritos. Favorite mais livros para refinar.',
   'recs.page.note': 'As recomendações mudam conforme você favorita e vê livros.',
-  'recs.becauseYouLiked.heading': 'Porque você gostou de',
   'recs.becauseYouLiked.title': 'Porque você gostou de {title}',
   'recs.becauseYouLiked.subtitle': 'Parecidos com este favorito de {author}.',
 };

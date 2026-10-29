@@ -39,9 +39,6 @@ export function FavoriteRecommendationShelves({ enabled = true }: { enabled?: bo
 
   return (
     <section className="flex flex-col gap-12">
-      <h2 className="text-2xl font-semibold tracking-[-0.02em] text-fg">
-        {t('recs.becauseYouLiked.heading')}
-      </h2>
       {data.map(({ source, similar }) => (
         <BookShelf
           key={source.id}

@@ -11,7 +11,7 @@ import { FavoriteRecommendationShelves } from '@/components/book/FavoriteRecomme
 export function RecommendationsPage() {
   const { t } = useI18n();
   const { user, isAuthenticated } = useAuth();
-  const { data, isLoading, isError, error, refetch } = useRecommendations(50);
+  const { data, isLoading, isError, error, refetch } = useRecommendations(15);
 
   const name = user?.displayName?.trim() || user?.username;
 
