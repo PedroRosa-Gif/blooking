@@ -85,4 +85,15 @@ class RecommendationControllerTest {
 
         verify(recommendationService).recommendForUser(eq(7L), eq(12));
     }
+
+    @Test
+    void byFavorites_usesUserIdFromToken() throws Exception {
+        when(recommendationService.recommendByFavorites(eq(7L))).thenReturn(List.of());
+
+        mockMvc.perform(get("/api/recommendations/by-favorites")
+                        .with(authentication(asUser(7L))))
+                .andExpect(status().isOk());
+
+        verify(recommendationService).recommendByFavorites(eq(7L));
+    }
 }

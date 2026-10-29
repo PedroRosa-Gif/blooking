@@ -104,8 +104,6 @@ const en: Dict = {
   'why.tile3.title': 'Learns your taste',
   'why.tile3.body':
     'Every favorite sharpens your recommendations, and new readers start with the most popular titles.',
-  'why.tile4.title': 'Runs where you do',
-  'why.tile4.body': 'One command starts the database, the message broker and the embedding model.',
 
   'cta.title': 'Your reading nights, organized',
   'cta.body': 'Create a free account to save favorites and unlock recommendations.',
@@ -123,7 +121,11 @@ const en: Dict = {
   'catalog.sort': 'Sort',
   'catalog.clear': 'Clear filters',
   'catalog.results': '{count} books',
-  'catalog.genreNote': 'For now only the first selected genre is applied (backend supports one).',
+  'catalog.genreMatch.label': 'Match',
+  'catalog.genreMatch.all': 'All',
+  'catalog.genreMatch.any': 'Any',
+  'catalog.genreMatch.all.hint': 'Books with every selected genre.',
+  'catalog.genreMatch.any.hint': 'Books with at least one selected genre.',
   'catalog.end': 'You’ve reached the end.',
   'catalog.empty.title': 'No books match those filters',
   'catalog.empty.body': 'Try removing a filter or broadening your search.',
@@ -288,6 +290,8 @@ const en: Dict = {
   'recs.seeAll': 'See all',
   'recs.page.subtitle': 'Personalized from your favorites. Favorite more books to refine them.',
   'recs.page.note': 'Recommendations update as you favorite and view books.',
+  'recs.becauseYouLiked.title': 'Because you liked {title}',
+  'recs.becauseYouLiked.subtitle': 'Similar to this favorite by {author}.',
 };
 
 const pt: Dict = {
@@ -381,9 +385,6 @@ const pt: Dict = {
   'why.tile3.title': 'Aprende seu gosto',
   'why.tile3.body':
     'Cada favorito afina suas recomendações, e quem está começando vê primeiro os títulos mais populares.',
-  'why.tile4.title': 'Roda onde você roda',
-  'why.tile4.body':
-    'Um comando sobe o banco de dados, o broker de mensagens e o modelo de embeddings.',
 
   'cta.title': 'Suas noites de leitura, organizadas',
   'cta.body': 'Crie uma conta gratuita para salvar favoritos e liberar recomendações.',
@@ -401,8 +402,11 @@ const pt: Dict = {
   'catalog.sort': 'Ordenar',
   'catalog.clear': 'Limpar filtros',
   'catalog.results': '{count} livros',
-  'catalog.genreNote':
-    'Por enquanto só o primeiro gênero selecionado é aplicado (o backend aceita um).',
+  'catalog.genreMatch.label': 'Combinar',
+  'catalog.genreMatch.all': 'Todos',
+  'catalog.genreMatch.any': 'Qualquer',
+  'catalog.genreMatch.all.hint': 'Livros com todos os gêneros selecionados.',
+  'catalog.genreMatch.any.hint': 'Livros com ao menos um gênero selecionado.',
   'catalog.end': 'Você chegou ao fim.',
   'catalog.empty.title': 'Nenhum livro com esses filtros',
   'catalog.empty.body': 'Tente remover um filtro ou ampliar a busca.',
@@ -569,6 +573,8 @@ const pt: Dict = {
   'recs.page.subtitle':
     'Personalizado a partir dos seus favoritos. Favorite mais livros para refinar.',
   'recs.page.note': 'As recomendações mudam conforme você favorita e vê livros.',
+  'recs.becauseYouLiked.title': 'Porque você gostou de {title}',
+  'recs.becauseYouLiked.subtitle': 'Parecidos com este favorito de {author}.',
 };
 
 export const translations: Record<Language, Dict> = { en, pt };

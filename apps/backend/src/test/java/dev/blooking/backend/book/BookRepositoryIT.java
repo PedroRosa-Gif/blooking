@@ -63,13 +63,13 @@ class BookRepositoryIT extends PostgresTestContainer {
 
     @Test
     void search_noFilters_returnsAll() {
-        Page<Book> result = bookRepository.search(null, null, null, page());
+        Page<Book> result = bookRepository.searchAllGenres(null, null, null, page());
         assertThat(result.getTotalElements()).isEqualTo(3);
     }
 
     @Test
-    void search_byGenre_usesArrayContains() {
-        Page<Book> result = bookRepository.search(null, null, "Fantasy", page());
+    void search_bySingleGenre_matchesArrayMembership() {
+        Page<Book> result = bookRepository.searchAllGenres(null, null, new String[]{"Fantasy"}, page());
         assertThat(result.getContent())
                 .extracting(Book::getTitle)
                 .containsExactlyInAnyOrder(
@@ -78,8 +78,37 @@ class BookRepositoryIT extends PostgresTestContainer {
     }
 
     @Test
+    void search_multiGenre_all_requiresEveryGenre() {
+        // Only The Hunger Games has BOTH Fantasy and Dystopia.
+        Page<Book> both = bookRepository.searchAllGenres(
+                null, null, new String[]{"Fantasy", "Dystopia"}, page());
+        assertThat(both.getContent())
+                .singleElement()
+                .extracting(Book::getTitle)
+                .isEqualTo("The Hunger Games");
+
+        // No book has both Fantasy and Romance -> empty.
+        Page<Book> none = bookRepository.searchAllGenres(
+                null, null, new String[]{"Fantasy", "Romance"}, page());
+        assertThat(none.getTotalElements()).isZero();
+    }
+
+    @Test
+    void search_multiGenre_any_requiresAtLeastOne() {
+        // Fantasy OR Romance -> HP5, Hunger Games (Fantasy) + Pride (Romance).
+        Page<Book> result = bookRepository.searchAnyGenre(
+                null, null, new String[]{"Fantasy", "Romance"}, page());
+        assertThat(result.getContent())
+                .extracting(Book::getTitle)
+                .containsExactlyInAnyOrder(
+                        "Harry Potter and the Order of the Phoenix",
+                        "The Hunger Games",
+                        "Pride and Prejudice");
+    }
+
+    @Test
     void search_byAuthor_matchesPartialCaseInsensitive() {
-        Page<Book> result = bookRepository.search(null, "austen", null, page());
+        Page<Book> result = bookRepository.searchAllGenres(null, "austen", null, page());
         assertThat(result.getContent())
                 .singleElement()
                 .extracting(Book::getTitle)
@@ -88,13 +117,13 @@ class BookRepositoryIT extends PostgresTestContainer {
 
     @Test
     void search_byFreeText_matchesTitleOrAuthor() {
-        Page<Book> byTitle = bookRepository.search("hunger", null, null, page());
+        Page<Book> byTitle = bookRepository.searchAllGenres("hunger", null, null, page());
         assertThat(byTitle.getContent())
                 .singleElement()
                 .extracting(Book::getTitle)
                 .isEqualTo("The Hunger Games");
 
-        Page<Book> byAuthor = bookRepository.search("rowling", null, null, page());
+        Page<Book> byAuthor = bookRepository.searchAllGenres("rowling", null, null, page());
         assertThat(byAuthor.getContent())
                 .singleElement()
                 .extracting(Book::getAuthor)
@@ -103,7 +132,7 @@ class BookRepositoryIT extends PostgresTestContainer {
 
     @Test
     void search_sortsByNumRatingsDescending() {
-        Page<Book> result = bookRepository.search(null, null, null, page());
+        Page<Book> result = bookRepository.searchAllGenres(null, null, null, page());
         assertThat(result.getContent())
                 .extracting(Book::getTitle)
                 .containsExactly(

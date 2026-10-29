@@ -1,5 +1,6 @@
 package dev.blooking.backend.book;
 
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -43,17 +44,47 @@ public class BookService {
         this.bookRepository = bookRepository;
     }
 
+    /** How a multi-genre filter combines the selected genres. */
+    public enum GenreMatch {
+        /** The book must contain EVERY selected genre (default). */
+        ALL,
+        /** The book must contain AT LEAST ONE of the selected genres. */
+        ANY
+    }
+
     /**
      * Paginated, optionally-filtered catalog listing (US02 / US03).
-     * Blank filter values are normalized to {@code null} (no filter).
+     *
+     * <p>Blank {@code q}/{@code author} values are normalized to {@code null}
+     * (no filter). {@code genres} filters by multiple genres: {@code ALL}
+     * requires every genre, {@code ANY} requires at least one. A null/empty
+     * list applies no genre filter. Blank genre entries are dropped.
      */
-    public Page<BookSummaryResponse> list(String q, String author, String genre, Pageable pageable) {
-        Page<Book> page = bookRepository.search(
-                blankToNull(q),
-                blankToNull(author),
-                blankToNull(genre),
-                sanitizeSort(pageable));
+    public Page<BookSummaryResponse> list(
+            String q, String author, List<String> genres, GenreMatch match, Pageable pageable) {
+        String[] genreArray = toGenreArray(genres);
+        Pageable sorted = sanitizeSort(pageable);
+        Page<Book> page = (match == GenreMatch.ANY)
+                ? bookRepository.searchAnyGenre(blankToNull(q), blankToNull(author), genreArray, sorted)
+                : bookRepository.searchAllGenres(blankToNull(q), blankToNull(author), genreArray, sorted);
         return page.map(BookSummaryResponse::from);
+    }
+
+    /**
+     * Trim and drop blank genres. Returns {@code null} (not an empty array) when
+     * there is nothing to filter, so the query skips the genre condition —
+     * matching an empty array with {@code @>} or {@code &&} would exclude every
+     * book.
+     */
+    private static String[] toGenreArray(List<String> genres) {
+        if (genres == null || genres.isEmpty()) {
+            return null;
+        }
+        String[] cleaned = genres.stream()
+                .filter(StringUtils::hasText)
+                .map(String::trim)
+                .toArray(String[]::new);
+        return cleaned.length == 0 ? null : cleaned;
     }
 
     /**

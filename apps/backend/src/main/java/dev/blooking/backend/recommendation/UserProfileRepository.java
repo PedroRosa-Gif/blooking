@@ -212,6 +212,33 @@ public class UserProfileRepository {
     }
 
     /**
+     * Book-to-book recommendations ("because you liked X"): the {@code limit}
+     * books nearest (cosine distance) to a <b>single source book's</b>
+     * embedding, excluding the source book itself, any book the user already
+     * favorites, and books without an embedding. Ordered most-similar first.
+     *
+     * <p>Mirrors {@link #recommendByProfile(long, int)} but ranks against a
+     * specific {@code books.embedding} instead of the user's stored profile
+     * centroid. Returns an empty list when the source book has no embedding.
+     */
+    public List<Long> recommendSimilarToBook(long sourceBookId, long userId, int limit) {
+        return jdbcTemplate.query(
+                """
+                SELECT b.id
+                FROM books b
+                JOIN books src ON src.id = ?
+                WHERE src.embedding IS NOT NULL
+                  AND b.embedding IS NOT NULL
+                  AND b.id <> src.id
+                  AND b.id NOT IN (SELECT book_id FROM favorites WHERE user_id = ?)
+                ORDER BY b.embedding <=> src.embedding
+                LIMIT ?
+                """,
+                (rs, rowNum) -> rs.getLong("id"),
+                sourceBookId, userId, limit);
+    }
+
+    /**
      * Cold-start fallback: the most popular books (by number of ratings, then
      * rating), excluding anything the user already favorites. Used when the user
      * has no preference embedding yet (no favorites / brand-new account), so the

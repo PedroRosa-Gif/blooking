@@ -16,4 +16,5 @@ export const queryKeys = {
     list: ['favorites', 'list'] as const,
   },
   recommendations: (limit: number) => ['recommendations', limit] as const,
+  favoriteRecommendations: ['recommendations', 'by-favorites'] as const,
 };

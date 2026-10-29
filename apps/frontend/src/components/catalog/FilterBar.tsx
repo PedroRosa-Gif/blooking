@@ -9,8 +9,9 @@ import { ArrowRightIcon, CloseIcon, SearchIcon } from '@/components/ui/Icon';
 /**
  * Catalog filters: author (debounced into the URL), multi-select genre chips and
  * a sort select. Text search is not here on purpose: it lives on the Search
- * page, and a link says so. Genres are an array in the UI; only the first
- * reaches the backend for now (see api/books.ts).
+ * page, and a link says so. When two or more genres are selected, an ALL/ANY
+ * toggle controls how they combine (all = must have every genre, the default;
+ * any = at least one).
  */
 export function FilterBar({
   state,
@@ -128,7 +129,37 @@ export function FilterBar({
       </div>
 
       {state.genres.length > 1 && (
-        <p className="text-caption text-fg-subtle">{t('catalog.genreNote')}</p>
+        <div className="flex flex-wrap items-center gap-3">
+          <span className="text-caption text-fg-subtle">{t('catalog.genreMatch.label')}</span>
+          <div
+            className="inline-flex rounded-full border border-line p-0.5"
+            role="group"
+            aria-label={t('catalog.genreMatch.label')}
+          >
+            {(['all', 'any'] as const).map((mode) => {
+              const active = state.genreMatch === mode;
+              return (
+                <button
+                  key={mode}
+                  type="button"
+                  aria-pressed={active}
+                  onClick={() => update({ genreMatch: mode })}
+                  className={cn(
+                    'rounded-full px-3 py-1 text-body-sm transition-colors',
+                    active
+                      ? 'bg-accent/15 text-accent'
+                      : 'text-fg-muted hover:text-fg',
+                  )}
+                >
+                  {t(`catalog.genreMatch.${mode}`)}
+                </button>
+              );
+            })}
+          </div>
+          <span className="text-caption text-fg-subtle">
+            {t(`catalog.genreMatch.${state.genreMatch}.hint`)}
+          </span>
+        </div>
       )}
     </div>
   );

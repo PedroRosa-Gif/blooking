@@ -67,6 +67,17 @@ export interface BookSummary {
   coverImg: string | null;
 }
 
+/**
+ * One "because you liked X" carousel — an item of
+ * `GET /api/recommendations/by-favorites`. `source` is a book the user
+ * favorited; `similar` are the books most similar to it (ranked), never
+ * including the source or any of the user's favorites.
+ */
+export interface FavoriteRecommendation {
+  source: BookSummary;
+  similar: BookSummary[];
+}
+
 /** Full book detail — `GET /api/books/{id}`. */
 export interface BookDetail {
   id: number;
@@ -111,14 +122,15 @@ export interface LoginRequest {
   password: string;
 }
 
-export interface RefreshRequest {
-  refreshToken: string;
-}
-
-/** Returned by register / login / refresh. `tokenType` is always "Bearer". */
+/**
+ * Returned by register / login / refresh. `tokenType` is always "Bearer".
+ *
+ * The refresh token is NOT here — the backend delivers it as an `HttpOnly`
+ * cookie (invisible to JS), sent automatically on auth requests because the
+ * axios client uses `withCredentials`.
+ */
 export interface AuthResponse {
   accessToken: string;
-  refreshToken: string;
   tokenType: string;
   expiresInSeconds: number;
 }

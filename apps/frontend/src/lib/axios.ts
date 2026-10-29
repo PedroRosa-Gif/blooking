@@ -16,7 +16,9 @@ declare module 'axios' {
  * Shared Axios instance for the Blooking API.
  *
  * `withCredentials` is enabled (the backend sets `allowCredentials=true`) so the
- * planned HttpOnly refresh-token cookie flow works without rewiring later.
+ * HttpOnly refresh-token cookie and the CSRF cookie are sent on cross-origin
+ * requests. A request interceptor attaches the access-token Bearer header and
+ * the `X-XSRF-TOKEN` CSRF header (from the `XSRF-TOKEN` cookie) on mutating calls.
  */
 export const api = axios.create({
   baseURL,
@@ -24,16 +26,43 @@ export const api = axios.create({
   headers: {
     'Content-Type': 'application/json',
   },
+  // Serialize array params as repeated keys (`genre=a&genre=b`) rather than
+  // axios's default bracketed form (`genre[]=a`), which is what Spring's
+  // `@RequestParam List<String>` binding expects.
+  paramsSerializer: { indexes: null },
 });
 
-// Attach the in-memory access token to every request when present.
+/** Methods that mutate state and therefore require a CSRF token. */
+const CSRF_METHODS = new Set(['post', 'put', 'patch', 'delete']);
+
+/** Reads a cookie value by name (returns null if absent). */
+function readCookie(name: string): string | null {
+  const match = document.cookie.match(
+    new RegExp('(?:^|; )' + name.replace(/([.$?*|{}()[\]\\/+^])/g, '\\$1') + '=([^;]*)'),
+  );
+  return match ? decodeURIComponent(match[1]) : null;
+}
+
+// Attach the in-memory access token, and the CSRF token on mutating requests.
 api.interceptors.request.use((config) => {
+  const headers = AxiosHeaders.from(config.headers);
+
   const token = getAccessToken();
   if (token) {
-    const headers = AxiosHeaders.from(config.headers);
     headers.set('Authorization', `Bearer ${token}`);
-    config.headers = headers;
   }
+
+  // Double-submit CSRF: echo the backend's JS-readable XSRF-TOKEN cookie in the
+  // X-XSRF-TOKEN header on state-changing requests. GETs don't need it, and the
+  // backend exempts login/register (no ambient cookie yet) — harmless to send.
+  if (CSRF_METHODS.has((config.method ?? 'get').toLowerCase())) {
+    const csrf = readCookie('XSRF-TOKEN');
+    if (csrf) {
+      headers.set('X-XSRF-TOKEN', csrf);
+    }
+  }
+
+  config.headers = headers;
   return config;
 });
 
