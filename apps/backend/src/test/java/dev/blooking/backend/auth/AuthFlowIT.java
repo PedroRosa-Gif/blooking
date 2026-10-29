@@ -28,7 +28,11 @@ import dev.blooking.backend.support.PostgresTestContainer;
         webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
         properties = {
                 "blooking.seed.enabled=false",
-                "spring.rabbitmq.listener.simple.auto-startup=false"
+                "spring.rabbitmq.listener.simple.auto-startup=false",
+                // This IT exercises the auth flow, not rate limiting; it fires
+                // several register/login calls from one client, so disable the
+                // limiter here to keep it testing what it means to.
+                "blooking.auth.rate-limit.enabled=false"
         })
 class AuthFlowIT extends PostgresTestContainer {
 

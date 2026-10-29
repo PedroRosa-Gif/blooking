@@ -157,6 +157,26 @@ environments), `JWT_ACCESS_EXPIRATION_MS`, `JWT_REFRESH_EXPIRATION_MS`,
 Public endpoints: `/api/books/**`, `/api/search`, `/api/auth/{register,login,refresh,logout}`,
 `/actuator/health`. Everything else requires a valid access token.
 
+### Brute-force protection (rate limiting)
+
+`POST /api/auth/login` and `POST /api/auth/register` are rate-limited per client
+IP by an in-memory, fixed-window filter (`AuthRateLimitFilter`): by default
+**5 attempts per minute**, after which requests get `429 Too Many Requests` with
+a `Retry-After` header until the window rolls over. The filter honours the first
+hop of `X-Forwarded-For` (for deployments behind a reverse proxy). It's a
+single-node limiter (no Redis) — adequate for one backend instance. Tunable via
+`blooking.auth.rate-limit.{enabled,max-attempts,window}`
+(`AUTH_RATE_LIMIT_*` env vars).
+
+### Refresh-token cleanup
+
+Refresh tokens only become *inactive* during normal use (expiry, rotation,
+logout) — they are never deleted inline — so a scheduled job
+(`RefreshTokenCleanupService`, default **daily at 03:00**, configurable via
+`blooking.auth.refresh-cleanup-cron`) hard-deletes expired tokens and tokens
+revoked more than a 7-day grace period ago, keeping the `refresh_tokens` table
+from growing without bound.
+
 > **Token transport (current vs. planned):** both tokens are returned in the
 > JSON body and sent via the `Authorization: Bearer` header. When the frontend
 > is built, the **refresh token will move to an `HttpOnly` + `Secure` +

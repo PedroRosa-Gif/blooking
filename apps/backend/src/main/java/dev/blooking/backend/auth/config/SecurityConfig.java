@@ -3,6 +3,7 @@ package dev.blooking.backend.auth.config;
 import java.util.List;
 
 import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication;
+import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
@@ -43,12 +44,15 @@ import org.springframework.http.HttpStatus;
 public class SecurityConfig {
 
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
+    private final AuthRateLimitFilter authRateLimitFilter;
 
     @Value("${blooking.cors.allowed-origins:http://localhost:5173}")
     private List<String> allowedOrigins;
 
-    public SecurityConfig(JwtAuthenticationFilter jwtAuthenticationFilter) {
+    public SecurityConfig(JwtAuthenticationFilter jwtAuthenticationFilter,
+                          AuthRateLimitFilter authRateLimitFilter) {
         this.jwtAuthenticationFilter = jwtAuthenticationFilter;
+        this.authRateLimitFilter = authRateLimitFilter;
     }
 
     @Bean
@@ -73,9 +77,27 @@ public class SecurityConfig {
                 // Return 401 (not a redirect) for unauthenticated access to protected endpoints.
                 .exceptionHandling(ex -> ex.authenticationEntryPoint(
                         new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED)))
-                .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
+                .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
+                // Rate-limit the public auth endpoints before the JWT filter, so a
+                // flood is rejected with 429 before touching authentication logic.
+                .addFilterBefore(authRateLimitFilter, JwtAuthenticationFilter.class);
 
         return http.build();
+    }
+
+    /**
+     * Prevents Spring Boot from auto-registering {@link AuthRateLimitFilter} as a
+     * plain servlet filter in addition to its place in the security chain. Unlike
+     * the JWT filter (idempotent), the rate limiter counts hits, so running twice
+     * per request would halve the effective limit. The filter runs only via the
+     * {@code addFilterBefore(...)} registration above.
+     */
+    @Bean
+    public FilterRegistrationBean<AuthRateLimitFilter> disableAuthRateLimitAutoRegistration(
+            AuthRateLimitFilter filter) {
+        FilterRegistrationBean<AuthRateLimitFilter> registration = new FilterRegistrationBean<>(filter);
+        registration.setEnabled(false);
+        return registration;
     }
 
     @Bean
