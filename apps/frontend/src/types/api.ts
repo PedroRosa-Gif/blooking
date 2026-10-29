@@ -67,6 +67,17 @@ export interface BookSummary {
   coverImg: string | null;
 }
 
+/**
+ * One "because you liked X" carousel — an item of
+ * `GET /api/recommendations/by-favorites`. `source` is a book the user
+ * favorited; `similar` are the books most similar to it (ranked), never
+ * including the source or any of the user's favorites.
+ */
+export interface FavoriteRecommendation {
+  source: BookSummary;
+  similar: BookSummary[];
+}
+
 /** Full book detail — `GET /api/books/{id}`. */
 export interface BookDetail {
   id: number;

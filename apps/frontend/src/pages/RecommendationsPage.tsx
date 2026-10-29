@@ -5,11 +5,12 @@ import { Section } from '@/components/layout/Section';
 import { BookGrid } from '@/components/ui/BookGrid';
 import { BookGridSkeleton } from '@/components/ui/BookCardSkeleton';
 import { ErrorState } from '@/components/ui/StateView';
+import { FavoriteRecommendationShelves } from '@/components/book/FavoriteRecommendationShelves';
 
 /** US05 — full personalized recommendations page (auth-gated by the route). */
 export function RecommendationsPage() {
   const { t } = useI18n();
-  const { user } = useAuth();
+  const { user, isAuthenticated } = useAuth();
   const { data, isLoading, isError, error, refetch } = useRecommendations(50);
 
   const name = user?.displayName?.trim() || user?.username;
@@ -33,6 +34,10 @@ export function RecommendationsPage() {
           <p className="mt-10 text-caption text-fg-subtle">{t('recs.page.note')}</p>
         </>
       )}
+
+      <div className="mt-20">
+        <FavoriteRecommendationShelves enabled={isAuthenticated} />
+      </div>
     </Section>
   );
 }

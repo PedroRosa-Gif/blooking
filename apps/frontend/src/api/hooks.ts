@@ -1,7 +1,7 @@
 import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
 import type { BookSummary, Page } from '@/types/api';
 import { getBook, getBooks, searchBooks, type BookFilters } from './books';
-import { getRecommendations } from './recommendations';
+import { getFavoriteRecommendations, getRecommendations } from './recommendations';
 import { queryKeys } from './queryKeys';
 
 const PAGE_SIZE = 24;
@@ -104,6 +104,21 @@ export function useRecommendations(limit = 12, enabled = true) {
   return useQuery({
     queryKey: queryKeys.recommendations(limit),
     queryFn: () => getRecommendations(limit),
+    enabled,
+    staleTime: 5 * 60_000,
+  });
+}
+
+/**
+ * "Because you liked X" carousels (US05), shown on the Recommendations page.
+ * Auth-gated by the caller passing `enabled`. Unlike {@link useRecommendations}
+ * this CAN be empty (a user with no favorites gets no carousels), so the caller
+ * handles the empty case.
+ */
+export function useFavoriteRecommendations(enabled = true) {
+  return useQuery({
+    queryKey: queryKeys.favoriteRecommendations,
+    queryFn: getFavoriteRecommendations,
     enabled,
     staleTime: 5 * 60_000,
   });
