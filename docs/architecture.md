@@ -4,8 +4,6 @@ A book search and recommendation platform that leverages hybrid search (semantic
 
 # Architecture Diagram
 
-<img src="./imgs/architecture.png" alt="Architecture Diagram" width="600"/>
-
 ```mermaid
 flowchart LR
     User(("User"))

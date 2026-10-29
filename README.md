@@ -34,11 +34,7 @@ Search by *meaning*, not just keywords — in English **or** Portuguese — over
 
 A Spring Boot **modular monolith** backend, a React frontend, and PostgreSQL (`pgvector`) as the single store for relational data, full-text search, and vector embeddings — with RabbitMQ carrying interaction events to the recommendation worker.
 
-<div align="center">
-<img src="./docs/imgs/architecture.png" alt="Blooking architecture diagram" width="640"/>
-</div>
-
-> Full write-up (data flow, retrieval, messaging topology, security) in **[`docs/architecture.md`](./docs/architecture.md)**.
+> 📐 **[See the architecture diagram and full write-up in `docs/architecture.md`](./docs/architecture.md)** — data flow, hybrid retrieval, messaging topology and security.
 
 ## Tech Stack
 
