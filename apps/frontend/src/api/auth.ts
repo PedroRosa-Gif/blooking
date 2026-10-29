@@ -2,10 +2,9 @@ import { api } from '@/lib/axios';
 import type { AuthResponse, User } from '@/types/api';
 
 /**
- * Auth endpoints. These are the ONLY calls that read/write the refresh token in
- * the request body — everything else uses the access token via the interceptor.
- * When the HttpOnly-cookie migration lands, only this file and the interceptor
- * change.
+ * Auth endpoints. The refresh token is an HttpOnly cookie handled by the
+ * backend (sent automatically via `withCredentials`), so these calls never
+ * touch it directly; everything else uses the access token via the interceptor.
  */
 
 export interface RegisterInput {
@@ -30,22 +29,24 @@ export async function login(username: string, password: string): Promise<AuthRes
 }
 
 /**
- * Exchange a refresh token for a new access token (rotates the refresh token).
- * Marked `skipAuthRefresh` so a 401 here never re-enters the refresh interceptor.
+ * Exchange the refresh-token cookie for a new access token (rotates the cookie
+ * server-side). The refresh token is sent automatically as an HttpOnly cookie
+ * (`withCredentials`), so there is no request body. Marked `skipAuthRefresh` so
+ * a 401 here never re-enters the refresh interceptor.
  */
-export async function refresh(refreshToken: string): Promise<AuthResponse> {
-  const { data } = await api.post<AuthResponse>(
-    '/api/auth/refresh',
-    { refreshToken },
-    { skipAuthRefresh: true },
-  );
+export async function refresh(): Promise<AuthResponse> {
+  const { data } = await api.post<AuthResponse>('/api/auth/refresh', null, {
+    skipAuthRefresh: true,
+  });
   return data;
 }
 
-/** Revoke a refresh token. Best-effort: logout should succeed even if this fails. */
-export async function logout(refreshToken: string | null): Promise<void> {
-  if (!refreshToken) return;
-  await api.post('/api/auth/logout', { refreshToken }, { skipAuthRefresh: true });
+/**
+ * Revoke the refresh token and clear its cookie (server-side). The cookie is
+ * sent automatically; best-effort — logout should succeed even if this fails.
+ */
+export async function logout(): Promise<void> {
+  await api.post('/api/auth/logout', null, { skipAuthRefresh: true });
 }
 
 export async function getMe(): Promise<User> {
