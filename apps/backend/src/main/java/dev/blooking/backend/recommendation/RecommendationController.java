@@ -9,6 +9,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import dev.blooking.backend.book.dto.BookSummaryResponse;
+import dev.blooking.backend.recommendation.dto.FavoriteRecommendationResponse;
 
 /**
  * Personalized recommendations endpoint (US05). Requires authentication; the
@@ -36,6 +37,18 @@ public class RecommendationController {
             @RequestParam(defaultValue = "" + DEFAULT_LIMIT) int limit) {
         long userId = (Long) authentication.getPrincipal();
         return recommendationService.recommendForUser(userId, clampLimit(limit));
+    }
+
+    /**
+     * "Because you liked X" recommendations: one carousel per recent favorite,
+     * each listing books similar to that favorite. The count of carousels and of
+     * books per carousel is fixed server-side (no request params). Returns an
+     * empty list when the user has no favorites with usable embeddings.
+     */
+    @GetMapping("/by-favorites")
+    public List<FavoriteRecommendationResponse> byFavorites(Authentication authentication) {
+        long userId = (Long) authentication.getPrincipal();
+        return recommendationService.recommendByFavorites(userId);
     }
 
     private static int clampLimit(int limit) {

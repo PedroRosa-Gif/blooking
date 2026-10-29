@@ -68,6 +68,7 @@ localhost defaults are baked in, matching `docker-compose.yml`):
 | `DELETE` | `/api/favorites/{bookId}` | Remove a favorite (auth) |
 | `GET` | `/api/favorites` | List my favorite books, paginated (auth) |
 | `GET` | `/api/recommendations?limit=` | Personalized book recommendations (auth) |
+| `GET` | `/api/recommendations/by-favorites` | "Because you liked X" carousels, one per recent favorite (auth) |
 | `GET` | `/actuator/health` | Deep health (DB, RabbitMQ, disk, ...) |
 | `GET` | `/actuator/info` | Build/app info |
 | `GET` | `/actuator/metrics` | Metrics |
@@ -215,6 +216,27 @@ Recommendations are then served in two modes:
 ```bash
 # After logging in and favoriting a few books:
 curl -H "Authorization: Bearer <access>" "http://localhost:8080/api/recommendations?limit=12"
+```
+
+### "Because you liked X" (`GET /api/recommendations/by-favorites`)
+
+A Netflix-style view built from the user's favorites: one carousel per favorite,
+each listing the books most similar to that favorite by **book-to-book** cosine
+distance (pgvector `b.embedding <=> src.embedding`). Unlike
+`/api/recommendations` (which ranks against a single centroid profile), each
+carousel is anchored on one specific book, so the result is directly
+attributable ("because you liked _this_").
+
+- At most the **8 most-recent favorites** become carousels, each with up to
+  **12** similar books.
+- Every carousel excludes the source book and all of the user's favorites;
+  a book may appear in more than one carousel (each is independent).
+- Carousels whose source book has no embedding are dropped (no empty sections).
+  Returns `[]` when the user has no favorites with usable embeddings.
+
+```bash
+curl -H "Authorization: Bearer <access>" "http://localhost:8080/api/recommendations/by-favorites"
+# -> [ { "source": { ...BookSummary... }, "similar": [ { ...BookSummary... }, ... ] }, ... ]
 ```
 
 ## Tests
