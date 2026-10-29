@@ -31,6 +31,12 @@ class FavoriteControllerTest {
     @MockitoBean
     private FavoriteService favoriteService;
 
+    // SecurityConfig is loaded in the web slice and wires JwtAuthenticationFilter,
+    // which needs a JwtService; the filter never runs here (addFilters = false),
+    // but the bean must be satisfiable for the context to start.
+    @MockitoBean
+    private dev.blooking.backend.auth.jwt.JwtService jwtService;
+
     private void authenticateAs(long userId) {
         SecurityContextHolder.getContext().setAuthentication(
                 new UsernamePasswordAuthenticationToken(userId, null, java.util.List.of()));
