@@ -56,7 +56,7 @@ localhost defaults are baked in, matching `docker-compose.yml`):
 | Method | Path | Description |
 | :--- | :--- | :--- |
 | `GET` | `/api/health` | Simple application liveness check |
-| `GET` | `/api/books` | List books (paginated); filters: `q`, `author`, `genre` |
+| `GET` | `/api/books` | List books (paginated); filters: `q`, `author`, `genre` (repeatable) + `genreMatch` |
 | `GET` | `/api/books/{id}` | Book detail |
 | `GET` | `/api/search?q=&limit=` | Hybrid search (semantic + keyword, RRF-fused) |
 | `POST` | `/api/auth/register` | Create account → access + refresh token |
@@ -68,6 +68,7 @@ localhost defaults are baked in, matching `docker-compose.yml`):
 | `DELETE` | `/api/favorites/{bookId}` | Remove a favorite (auth) |
 | `GET` | `/api/favorites` | List my favorite books, paginated (auth) |
 | `GET` | `/api/recommendations?limit=` | Personalized book recommendations (auth) |
+| `GET` | `/api/recommendations/by-favorites` | "Because you liked X" carousels, one per recent favorite (auth) |
 | `GET` | `/actuator/health` | Deep health (DB, RabbitMQ, disk, ...) |
 | `GET` | `/actuator/info` | Build/app info |
 | `GET` | `/actuator/metrics` | Metrics |
@@ -83,6 +84,11 @@ curl "http://localhost:8080/api/books"
 
 # Filter by genre + free-text, page 2 of 10
 curl "http://localhost:8080/api/books?genre=Fantasy&q=harry&page=1&size=10"
+
+# Multiple genres. genreMatch=all (default) -> books with EVERY genre;
+# genreMatch=any -> books with at least one.
+curl "http://localhost:8080/api/books?genre=Fantasy&genre=Dystopia"            # all (default)
+curl "http://localhost:8080/api/books?genre=Fantasy&genre=Romance&genreMatch=any"
 
 # Sort by rating descending
 curl "http://localhost:8080/api/books?sort=rating,desc"
@@ -126,22 +132,28 @@ Stateless auth with a **short-lived access token** (JWT, 15 min) and a
 **long-lived, revocable refresh token** (opaque, 7 days, stored hashed in the
 `refresh_tokens` table). Login is by **username**.
 
+The access token is returned in the body; the refresh token is set as an
+`HttpOnly` cookie (see *Token transport & CSRF* below). Use a cookie jar
+(`curl -c/-b`) so the refresh cookie is stored and resent.
+
 ```bash
-# register (or login) -> { accessToken, refreshToken, tokenType, expiresInSeconds }
-curl -X POST http://localhost:8080/api/auth/register \
+# register (or login) -> { accessToken, tokenType, expiresInSeconds }
+# -c saves the Set-Cookie (refresh_token + XSRF-TOKEN) into cookies.txt
+curl -c cookies.txt -X POST http://localhost:8080/api/auth/register \
   -H 'Content-Type: application/json' \
   -d '{"username":"alice","password":"password123","displayName":"Alice"}'
 
 # call a protected endpoint
 curl http://localhost:8080/api/auth/me -H "Authorization: Bearer <accessToken>"
 
-# refresh (rotates the refresh token: the old one is revoked)
-curl -X POST http://localhost:8080/api/auth/refresh \
-  -H 'Content-Type: application/json' -d '{"refreshToken":"<refreshToken>"}'
+# refresh (rotates the token). Sends the refresh cookie (-b) and echoes the
+# CSRF token from the XSRF-TOKEN cookie in the X-XSRF-TOKEN header.
+curl -b cookies.txt -c cookies.txt -X POST http://localhost:8080/api/auth/refresh \
+  -H "X-XSRF-TOKEN: $(grep XSRF-TOKEN cookies.txt | awk '{print $7}')"
 
-# logout (revokes the refresh token)
-curl -X POST http://localhost:8080/api/auth/logout \
-  -H 'Content-Type: application/json' -d '{"refreshToken":"<refreshToken>"}'
+# logout (revokes the refresh token and clears the cookie)
+curl -b cookies.txt -c cookies.txt -X POST http://localhost:8080/api/auth/logout \
+  -H "X-XSRF-TOKEN: $(grep XSRF-TOKEN cookies.txt | awk '{print $7}')"
 ```
 
 Config via env vars: `JWT_SECRET` (set a long random value in real
@@ -151,11 +163,47 @@ environments), `JWT_ACCESS_EXPIRATION_MS`, `JWT_REFRESH_EXPIRATION_MS`,
 Public endpoints: `/api/books/**`, `/api/search`, `/api/auth/{register,login,refresh,logout}`,
 `/actuator/health`. Everything else requires a valid access token.
 
-> **Token transport (current vs. planned):** both tokens are returned in the
-> JSON body and sent via the `Authorization: Bearer` header. When the frontend
-> is built, the **refresh token will move to an `HttpOnly` + `Secure` +
-> `SameSite` cookie** (protects it from XSS theft), keeping the short-lived
-> access token in the header. CSRF handling will be added at that point.
+### Brute-force protection (rate limiting)
+
+`POST /api/auth/login` and `POST /api/auth/register` are rate-limited per client
+IP by an in-memory, fixed-window filter (`AuthRateLimitFilter`): by default
+**5 attempts per minute**, after which requests get `429 Too Many Requests` with
+a `Retry-After` header until the window rolls over. The filter honours the first
+hop of `X-Forwarded-For` (for deployments behind a reverse proxy). It's a
+single-node limiter (no Redis) — adequate for one backend instance. Tunable via
+`blooking.auth.rate-limit.{enabled,max-attempts,window}`
+(`AUTH_RATE_LIMIT_*` env vars).
+
+### Refresh-token cleanup
+
+Refresh tokens only become *inactive* during normal use (expiry, rotation,
+logout) — they are never deleted inline — so a scheduled job
+(`RefreshTokenCleanupService`, default **daily at 03:00**, configurable via
+`blooking.auth.refresh-cleanup-cron`) hard-deletes expired tokens and tokens
+revoked more than a 7-day grace period ago, keeping the `refresh_tokens` table
+from growing without bound.
+
+### Token transport & CSRF
+
+The **access token** (short-lived JWT) is returned in the JSON body and sent
+back via the `Authorization: Bearer` header. The **refresh token** is delivered
+as an **`HttpOnly` cookie** (`refresh_token`), invisible to JavaScript so an XSS
+cannot steal it; `refresh` and `logout` read it from the cookie, and `logout`
+clears it. The cookie attributes are configurable under
+`blooking.auth.refresh-cookie.*`:
+
+- `secure` — default `false` for local dev over HTTP; **set `true` in
+  production** (`AUTH_REFRESH_COOKIE_SECURE=true`), cookie then HTTPS-only.
+- `same-site` — default `Lax` (SPA and API same-site). A cross-site production
+  deployment needs `None`, which browsers only accept together with `secure=true`.
+
+Because an ambient cookie now authenticates `refresh`/`logout`, **CSRF
+protection is enabled** via a double-submit cookie: the server sets a
+JS-readable `XSRF-TOKEN` cookie and requires its value echoed in the
+`X-XSRF-TOKEN` header on mutating requests (`POST`/`PUT`/`PATCH`/`DELETE`);
+`GET`/`HEAD`/`OPTIONS` are never checked. `/api/auth/login` and
+`/api/auth/register` are exempt (no ambient cookie to protect yet). This stays
+stateless — the CSRF token lives in a cookie, not a server session.
 
 ## Favorites & interaction events
 
@@ -210,6 +258,27 @@ Recommendations are then served in two modes:
 ```bash
 # After logging in and favoriting a few books:
 curl -H "Authorization: Bearer <access>" "http://localhost:8080/api/recommendations?limit=12"
+```
+
+### "Because you liked X" (`GET /api/recommendations/by-favorites`)
+
+A Netflix-style view built from the user's favorites: one carousel per favorite,
+each listing the books most similar to that favorite by **book-to-book** cosine
+distance (pgvector `b.embedding <=> src.embedding`). Unlike
+`/api/recommendations` (which ranks against a single centroid profile), each
+carousel is anchored on one specific book, so the result is directly
+attributable ("because you liked _this_").
+
+- At most the **8 most-recent favorites** become carousels, each with up to
+  **12** similar books.
+- Every carousel excludes the source book and all of the user's favorites;
+  a book may appear in more than one carousel (each is independent).
+- Carousels whose source book has no embedding are dropped (no empty sections).
+  Returns `[]` when the user has no favorites with usable embeddings.
+
+```bash
+curl -H "Authorization: Bearer <access>" "http://localhost:8080/api/recommendations/by-favorites"
+# -> [ { "source": { ...BookSummary... }, "similar": [ { ...BookSummary... }, ... ] }, ... ]
 ```
 
 ## Tests

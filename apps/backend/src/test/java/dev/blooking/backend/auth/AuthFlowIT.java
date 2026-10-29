@@ -2,6 +2,8 @@ package dev.blooking.backend.auth;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import org.junit.jupiter.api.Test;
@@ -21,6 +23,12 @@ import dev.blooking.backend.support.PostgresTestContainer;
  * End-to-end authentication flow against a real PostgreSQL container and the
  * full security stack: register → access protected endpoint → refresh → logout.
  *
+ * <p>The refresh token now travels in an {@code HttpOnly} cookie (not the JSON
+ * body), and CSRF is enabled, so the test keeps a small cookie jar and echoes
+ * the {@code XSRF-TOKEN} cookie back as the {@code X-XSRF-TOKEN} header on
+ * mutating requests to the CSRF-protected endpoints ({@code refresh},
+ * {@code logout}). {@code login}/{@code register} are CSRF-exempt.
+ *
  * <p>Seeding is disabled so the app boots fast and does not need Ollama.
  * Requires Docker (skipped gracefully otherwise).
  */
@@ -28,28 +36,39 @@ import dev.blooking.backend.support.PostgresTestContainer;
         webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
         properties = {
                 "blooking.seed.enabled=false",
-                "spring.rabbitmq.listener.simple.auto-startup=false"
+                "spring.rabbitmq.listener.simple.auto-startup=false",
+                // This IT exercises the auth flow, not rate limiting; it fires
+                // several register/login calls from one client, so disable the
+                // limiter here to keep it testing what it means to.
+                "blooking.auth.rate-limit.enabled=false"
         })
 class AuthFlowIT extends PostgresTestContainer {
+
+    private static final String REFRESH_COOKIE = "refresh_token";
+    private static final String CSRF_COOKIE = "XSRF-TOKEN";
 
     @Autowired
     private TestRestTemplate rest;
 
+    /** A tiny cookie jar: name -> value, updated from each response's Set-Cookie. */
+    private final Map<String, String> cookies = new HashMap<>();
+
     @Test
     void fullAuthFlow() {
         // --- register ---
-        ResponseEntity<Map> reg = rest.postForEntity("/api/auth/register",
-                json(Map.of("username", "alice", "password", "password123", "displayName", "Alice")),
-                Map.class);
+        ResponseEntity<Map> reg = post("/api/auth/register",
+                Map.of("username", "alice", "password", "password123", "displayName", "Alice"));
         assertThat(reg.getStatusCode()).isEqualTo(HttpStatus.CREATED);
         String accessToken = (String) reg.getBody().get("accessToken");
-        String refreshToken = (String) reg.getBody().get("refreshToken");
         assertThat(accessToken).isNotBlank();
-        assertThat(refreshToken).isNotBlank();
+        // Refresh token is in the cookie, NOT the body.
+        assertThat(reg.getBody()).doesNotContainKey("refreshToken");
+        assertThat(cookies.get(REFRESH_COOKIE)).isNotBlank();
+        String firstRefresh = cookies.get(REFRESH_COOKIE);
 
         // --- duplicate username -> 409 ---
-        ResponseEntity<Map> dup = rest.postForEntity("/api/auth/register",
-                json(Map.of("username", "alice", "password", "password123")), Map.class);
+        ResponseEntity<Map> dup = post("/api/auth/register",
+                Map.of("username", "alice", "password", "password123"));
         assertThat(dup.getStatusCode()).isEqualTo(HttpStatus.CONFLICT);
 
         // --- /me without token -> 401 ---
@@ -64,29 +83,30 @@ class AuthFlowIT extends PostgresTestContainer {
         assertThat(me.getBody()).doesNotContainKey("passwordHash");
 
         // --- login with wrong password -> 401 ---
-        ResponseEntity<Map> badLogin = rest.postForEntity("/api/auth/login",
-                json(Map.of("username", "alice", "password", "wrong")), Map.class);
+        ResponseEntity<Map> badLogin = post("/api/auth/login",
+                Map.of("username", "alice", "password", "wrong"));
         assertThat(badLogin.getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
 
-        // --- refresh -> new tokens ---
-        ResponseEntity<Map> refreshed = rest.postForEntity("/api/auth/refresh",
-                json(Map.of("refreshToken", refreshToken)), Map.class);
+        // --- refresh (cookie + CSRF header) -> new refresh cookie (rotation) ---
+        ResponseEntity<Map> refreshed = post("/api/auth/refresh", null);
         assertThat(refreshed.getStatusCode()).isEqualTo(HttpStatus.OK);
-        String newRefresh = (String) refreshed.getBody().get("refreshToken");
-        assertThat(newRefresh).isNotBlank().isNotEqualTo(refreshToken);
+        assertThat(refreshed.getBody().get("accessToken")).asString().isNotBlank();
+        String rotatedRefresh = cookies.get(REFRESH_COOKIE);
+        assertThat(rotatedRefresh).isNotBlank().isNotEqualTo(firstRefresh);
 
-        // --- old refresh token is now revoked (rotation) -> 401 ---
-        ResponseEntity<Map> reuseOld = rest.postForEntity("/api/auth/refresh",
-                json(Map.of("refreshToken", refreshToken)), Map.class);
+        // --- the OLD refresh token is now revoked (rotation) -> 401 ---
+        cookies.put(REFRESH_COOKIE, firstRefresh); // present the stale token
+        ResponseEntity<Map> reuseOld = post("/api/auth/refresh", null);
         assertThat(reuseOld.getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
+        cookies.put(REFRESH_COOKIE, rotatedRefresh); // restore the live token
 
         // --- logout revokes the current refresh token ---
-        ResponseEntity<Void> logout = rest.postForEntity("/api/auth/logout",
-                json(Map.of("refreshToken", newRefresh)), Void.class);
+        ResponseEntity<Void> logout = exchange("/api/auth/logout", null, Void.class);
         assertThat(logout.getStatusCode()).isEqualTo(HttpStatus.NO_CONTENT);
 
-        ResponseEntity<Map> afterLogout = rest.postForEntity("/api/auth/refresh",
-                json(Map.of("refreshToken", newRefresh)), Map.class);
+        // --- refresh after logout -> 401 (token revoked) ---
+        cookies.put(REFRESH_COOKIE, rotatedRefresh);
+        ResponseEntity<Map> afterLogout = post("/api/auth/refresh", null);
         assertThat(afterLogout.getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
     }
 
@@ -97,14 +117,59 @@ class AuthFlowIT extends PostgresTestContainer {
                 .isEqualTo(HttpStatus.OK);
     }
 
-    private static HttpHeaders jsonHeaders() {
-        HttpHeaders h = new HttpHeaders();
-        h.setContentType(MediaType.APPLICATION_JSON);
-        return h;
+    // --- helpers ----------------------------------------------------------
+
+    /** POST JSON, capturing Set-Cookie into the jar and sending CSRF + cookies. */
+    private ResponseEntity<Map> post(String path, Map<String, Object> body) {
+        return exchange(path, body, Map.class);
     }
 
-    private static HttpEntity<Map<String, Object>> json(Map<String, Object> body) {
-        return new HttpEntity<>(body, jsonHeaders());
+    @SuppressWarnings("unchecked")
+    private <T> ResponseEntity<T> exchange(String path, Map<String, Object> body, Class<T> type) {
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON);
+        sendCookies(headers);
+        // Echo the CSRF token back on mutating requests (ignored where exempt).
+        String csrf = cookies.get(CSRF_COOKIE);
+        if (csrf != null) {
+            headers.set("X-XSRF-TOKEN", csrf);
+        }
+        ResponseEntity<T> response = rest.exchange(
+                path, HttpMethod.POST, new HttpEntity<>(body, headers), type);
+        captureCookies(response.getHeaders());
+        return response;
+    }
+
+    /** Adds the current cookie jar as a single Cookie header. */
+    private void sendCookies(HttpHeaders headers) {
+        if (cookies.isEmpty()) {
+            return;
+        }
+        StringBuilder sb = new StringBuilder();
+        cookies.forEach((k, v) -> sb.append(k).append('=').append(v).append("; "));
+        headers.add(HttpHeaders.COOKIE, sb.toString());
+    }
+
+    /** Parses Set-Cookie headers (name=value; attrs...) into the jar. */
+    private void captureCookies(HttpHeaders headers) {
+        List<String> setCookies = headers.get(HttpHeaders.SET_COOKIE);
+        if (setCookies == null) {
+            return;
+        }
+        for (String sc : setCookies) {
+            String nameValue = sc.split(";", 2)[0];
+            int eq = nameValue.indexOf('=');
+            if (eq <= 0) {
+                continue;
+            }
+            String name = nameValue.substring(0, eq).trim();
+            String value = nameValue.substring(eq + 1).trim();
+            if (value.isEmpty()) {
+                cookies.remove(name); // a cleared cookie (Max-Age=0, empty value)
+            } else {
+                cookies.put(name, value);
+            }
+        }
     }
 
     private static HttpHeaders bearer(String token) {

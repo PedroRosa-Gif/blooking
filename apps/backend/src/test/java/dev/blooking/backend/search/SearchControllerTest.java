@@ -32,6 +32,12 @@ class SearchControllerTest {
     @MockitoBean
     private dev.blooking.backend.events.EventPublisher eventPublisher;
 
+    // SecurityConfig is loaded in the web slice and wires JwtAuthenticationFilter,
+    // which needs a JwtService; the filter never runs here (addFilters = false),
+    // but the bean must be satisfiable for the context to start.
+    @MockitoBean
+    private dev.blooking.backend.auth.jwt.JwtService jwtService;
+
     private BookSummaryResponse sample() {
         return new BookSummaryResponse(1L, "The Hunger Games", "Suzanne Collins",
                 "The Hunger Games #1", List.of("Dystopia"),
