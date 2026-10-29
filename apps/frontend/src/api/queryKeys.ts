@@ -10,7 +10,10 @@ export const queryKeys = {
     detail: (id: number) => ['books', 'detail', id] as const,
   },
   search: (q: string, limit: number) => ['search', q, limit] as const,
-  favorites: (page: number, size: number) => ['favorites', page, size] as const,
+  favorites: {
+    all: ['favorites'] as const,
+    ids: ['favorites', 'ids'] as const,
+    list: ['favorites', 'list'] as const,
+  },
   recommendations: (limit: number) => ['recommendations', limit] as const,
-  me: ['auth', 'me'] as const,
 };

@@ -1,6 +1,7 @@
 import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
 import type { BookSummary, Page } from '@/types/api';
 import { getBook, getBooks, searchBooks, type BookFilters } from './books';
+import { getRecommendations } from './recommendations';
 import { queryKeys } from './queryKeys';
 
 const PAGE_SIZE = 24;
@@ -92,5 +93,18 @@ export function useBooksByAuthor(author: string, size = 16) {
     enabled: name.length > 0,
     staleTime: 10 * 60_000,
     select: (page) => page.content,
+  });
+}
+
+/**
+ * Personalized recommendations (US05). Auth-gated by the caller passing
+ * `enabled`; the backend never returns an empty list (popularity cold-start).
+ */
+export function useRecommendations(limit = 12, enabled = true) {
+  return useQuery({
+    queryKey: queryKeys.recommendations(limit),
+    queryFn: () => getRecommendations(limit),
+    enabled,
+    staleTime: 5 * 60_000,
   });
 }

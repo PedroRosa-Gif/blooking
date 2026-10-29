@@ -1,14 +1,22 @@
-import axios, { AxiosHeaders } from 'axios';
+import axios, { AxiosHeaders, type InternalAxiosRequestConfig } from 'axios';
 import { getAccessToken } from '@/auth/tokenStore';
 
 const baseURL = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8080';
 
+declare module 'axios' {
+  interface AxiosRequestConfig {
+    /** Do not run the 401 refresh interceptor for this request (used by /refresh, /logout). */
+    skipAuthRefresh?: boolean;
+    /** Internal: set once a request has already been retried after a refresh. */
+    _retried?: boolean;
+  }
+}
+
 /**
  * Shared Axios instance for the Blooking API.
  *
- * `withCredentials` is enabled now (the backend already sets
- * `allowCredentials=true`) so that the planned HttpOnly refresh-token cookie
- * flow works without another wiring change later.
+ * `withCredentials` is enabled (the backend sets `allowCredentials=true`) so the
+ * planned HttpOnly refresh-token cookie flow works without rewiring later.
  */
 export const api = axios.create({
   baseURL,
@@ -30,8 +38,64 @@ api.interceptors.request.use((config) => {
 });
 
 /*
- * PHASE 3 (auth): a response interceptor will catch 401s on protected calls,
- * attempt a single `POST /api/auth/refresh` (rotating the refresh token), and
- * replay the original request. Left out in the scaffold phase on purpose —
- * there are no authenticated calls yet.
+ * 401 handling with single-flight refresh.
+ *
+ * When a protected call gets 401, we try ONE `/api/auth/refresh`. Concurrent
+ * 401s share that single refresh (they wait on `refreshPromise`) instead of
+ * each firing their own — the backend rotates the refresh token, so parallel
+ * refreshes would invalidate each other. After it resolves, the original
+ * requests are replayed once with the new access token.
+ *
+ * The actual refresh + session-clearing logic lives in AuthContext; it
+ * registers callbacks here via `configureAuthRefresh` so this module stays free
+ * of React and of the token transport details.
  */
+let doRefresh: (() => Promise<string | null>) | null = null;
+let onSessionExpired: (() => void) | null = null;
+let refreshPromise: Promise<string | null> | null = null;
+
+export function configureAuthRefresh(opts: {
+  refresh: () => Promise<string | null>;
+  onExpired: () => void;
+}) {
+  doRefresh = opts.refresh;
+  onSessionExpired = opts.onExpired;
+}
+
+api.interceptors.response.use(
+  (response) => response,
+  async (error: unknown) => {
+    if (!axios.isAxiosError(error) || !error.response || !error.config) {
+      return Promise.reject(error);
+    }
+    const status = error.response.status;
+    const config = error.config as InternalAxiosRequestConfig;
+
+    const canRetry =
+      status === 401 && doRefresh !== null && !config.skipAuthRefresh && !config._retried;
+    if (!canRetry) {
+      return Promise.reject(error);
+    }
+
+    config._retried = true;
+    try {
+      // Share one in-flight refresh across all concurrent 401s.
+      refreshPromise = refreshPromise ?? doRefresh!();
+      const newToken = await refreshPromise;
+      refreshPromise = null;
+
+      if (!newToken) {
+        onSessionExpired?.();
+        return Promise.reject(error);
+      }
+      const headers = AxiosHeaders.from(config.headers);
+      headers.set('Authorization', `Bearer ${newToken}`);
+      config.headers = headers;
+      return api(config);
+    } catch (refreshError) {
+      refreshPromise = null;
+      onSessionExpired?.();
+      return Promise.reject(refreshError);
+    }
+  },
+);

@@ -2,9 +2,12 @@ import { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import type { BookSummary } from '@/types/api';
 import { useI18n } from '@/i18n/I18nProvider';
+import { useFavoriteIds } from '@/api/favoriteHooks';
 import { cn } from '@/lib/cn';
 import { displayAuthors } from '@/lib/authors';
+import { hasFavorite } from '@/lib/favoriteSet';
 import { fromState } from '@/lib/navigation';
+import { FavoriteButton } from '@/components/book/FavoriteButton';
 
 /** Format with the app's language, not the browser's, so the card never mixes locales. */
 function compact(count: number, lang: string): string {
@@ -21,6 +24,8 @@ function compact(count: number, lang: string): string {
 export function BookCard({ book, className }: { book: BookSummary; className?: string }) {
   const { t, lang } = useI18n();
   const location = useLocation();
+  const { data: favIds } = useFavoriteIds();
+  const favorited = hasFavorite(favIds, book.id);
   const [failed, setFailed] = useState(false);
   const showImage = Boolean(book.coverImg) && !failed;
 
@@ -31,6 +36,12 @@ export function BookCard({ book, className }: { book: BookSummary; className?: s
       className={cn('group block w-full', className)}
     >
       <div className="relative aspect-[2/3] overflow-hidden rounded-image bg-card-2 shadow-cover ring-1 ring-line transition duration-300 group-hover:-translate-y-1 group-hover:ring-line-strong">
+        <div
+          className="absolute right-2 top-2 z-10 opacity-0 transition-opacity focus-within:opacity-100 group-hover:opacity-100 data-[fav=true]:opacity-100"
+          data-fav={favorited}
+        >
+          <FavoriteButton bookId={book.id} variant="icon" />
+        </div>
         {showImage ? (
           <img
             src={book.coverImg ?? undefined}

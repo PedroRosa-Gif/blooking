@@ -90,8 +90,8 @@ export const BookOpenIcon = (p: IconProps) => (
     <path d="M22 4h-6a4 4 0 0 0-4 4v12a3 3 0 0 1 3-3h7V4Z" />
   </Svg>
 );
-export const HeartIcon = (p: IconProps) => (
-  <Svg {...p}>
+export const HeartIcon = ({ filled, ...p }: IconProps & { filled?: boolean }) => (
+  <Svg {...p} fill={filled ? 'currentColor' : 'none'}>
     <path d="M20.8 5.6a5.5 5.5 0 0 0-7.8 0L12 6.7l-1-1.1a5.5 5.5 0 0 0-7.8 7.8l1 1.1L12 22l7.8-7.5 1-1.1a5.5 5.5 0 0 0 0-7.8Z" />
   </Svg>
 );

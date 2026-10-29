@@ -77,6 +77,8 @@
   --accent-hover: #f2c476;
   --accent-ink: #1a1203;
 
+  --danger: #f2706b; /* form errors — legible on the dark surface */
+
   --sky: linear-gradient(180deg, #01030a 0%, #030710 38%, #050c19 74%, #09132a 100%);
   --horizon: rgb(232 176 89 / 0.06);
   --fade: 96px; /* how far a solid band melts into the sky */
@@ -101,6 +103,8 @@
   --accent-hover: #c07d14;
   --accent-ink: #ffffff;
 
+  --danger: #c23934; /* form errors on the light surface */
+
   --sky: linear-gradient(180deg, #cfe0f3 0%, #e6eef8 50%, #f4f7fb 100%);
   --horizon: rgb(168 105 13 / 0.05);
 }
@@ -120,6 +124,7 @@
   --color-accent: var(--accent);
   --color-accent-hover: var(--accent-hover);
   --color-accent-ink: var(--accent-ink);
+  --color-danger: var(--danger);
 }
 
 /* Typed custom properties so the shelf edge fades can animate. */

@@ -4,10 +4,11 @@
 Web UI for book discovery, hybrid search and personalized recommendations.
 Talks to the [Blooking backend](../backend) REST API.
 
-> **Status:** Phase 2 — **discovery**. Search, catalog with filters and the book
-> detail page (US01–US04) run against the live backend API. The backend must be
-> running for data to appear. Auth, favorites and recommendations (US05–US11)
-> land in Phase 3.
+> **Status:** Phase 3 — **accounts**. All user stories (US01–US11) run against
+> the live backend: search, catalog and book detail, plus register/login/logout,
+> favorites and personalized recommendations. The backend must be running for
+> data to appear. Remaining follow-up: the refresh-token → HttpOnly cookie + CSRF
+> migration (Phase 4).
 
 ## Tech Stack
 
@@ -155,34 +156,7 @@ UI relies on:
   an empty 401 body from the security layer, or Spring's default body);
   `lib/apiError.ts` normalizes all three.
 
-## Authentication (current vs. planned)
-
-Phase 1 ships only the auth **skeleton**. The token transport is deliberately
-funnelled through `src/auth/tokenStore.ts`:
-
-- **Now:** the access token is kept **in memory**; the refresh token is stored in
-  `localStorage` and sent in the request body (matching the current backend).
-- **Planned:** move the refresh token to an **HttpOnly + Secure + SameSite
-  cookie** (set/read by the backend) and add CSRF protection. The Axios client
-  already sets `withCredentials: true` and the backend already allows
-  credentials, so that migration is localized to `tokenStore.ts` + the Axios
-  interceptor.
-
-## Internationalization
-
-Lightweight, dependency-free EN/PT support (`src/i18n/`). English is the
-default; a language toggle lives in the nav. Missing keys fall back to English,
-then to the raw key.
-
-## Roadmap
-
-- **Phase 1 (done):** scaffold, design system, API layer.
-- **Phase 2 (this):** US01–US04 — search, catalog list + filters, book detail,
-  all against the live API (no more sample data).
-- **Phase 3:** US05–US11 — recommendations, auth, favorites.
-- **Phase 4 (optional):** refresh-token → HttpOnly cookie + CSRF (backend + frontend).
-
-## Routes & data (Phase 2)
+## Routes & data
 
 | Route        | Screen                | Endpoint                               |
 | :----------- | :-------------------- | :------------------------------------- |
@@ -250,50 +224,50 @@ rewriting it:
   `genre`, so only the first is sent (see `toBookParams` in `api/books.ts`).
   A backend change to accept several genres is tracked.
 
-## Authentication (current vs. planned)
+## Authentication & account (Phase 3)
 
-Phase 1 ships only the auth **skeleton**. The token transport is deliberately
-funnelled through `src/auth/tokenStore.ts`:
+Real auth now (US06–US08): `AuthContext` calls `/api/auth/*`, keeps the access
+token in memory and the refresh token in `localStorage`, and on load restores a
+session from a stored refresh token (a spinner guards protected routes until that
+resolves). Login/register redirect back to a validated `?from=` (open redirects
+rejected). The nav shows Login/Sign up when signed out and a user menu
+(Favorites, For you, Log out) when signed in.
 
-- **Now:** the access token is kept **in memory**; the refresh token is stored in
-  `localStorage` and sent in the request body (matching the current backend).
-- **Planned:** move the refresh token to an **HttpOnly + Secure + SameSite
-  cookie** (set/read by the backend) and add CSRF protection. The Axios client
-  already sets `withCredentials: true` and the backend already allows
-  credentials, so that migration is localized to `tokenStore.ts` + the Axios
-  interceptor.
+- **Token transport is still body-based**, isolated in `tokenStore.ts`. The
+  move to an HttpOnly + Secure + SameSite cookie + CSRF is the Phase 4 follow-up
+  (agreed phased approach); the Axios client already sends `withCredentials`.
+- **401 → single-flight refresh.** A 401 on a protected call triggers one
+  `/api/auth/refresh`; concurrent 401s share that single refresh (the backend
+  rotates the refresh token, so parallel refreshes would invalidate each other),
+  then the original requests replay. `/refresh` and `/logout` opt out via
+  `skipAuthRefresh`. If refresh fails, the session is cleared.
+
+## Favorites & recommendations (Phase 3)
+
+- **Favorites (US09–US11):** a heart toggle on cards and the book page, with an
+  optimistic update of a cached set of favorited IDs (rolled back on error). The
+  backend endpoints are idempotent, so a double click is harmless. `/favorites`
+  lists saved books (infinite scroll). Signed out, the heart routes to login.
+- **Recommendations (US05):** a "For you" shelf on the Home page (signed-in only)
+  and a full `/recommendations` page. The backend never returns an empty list
+  (popularity cold-start).
+
+> **Backend follow-up (tracked):** no response says whether a book is favorited,
+> so the client fetches the favorite IDs after login and caches them. An
+> `isFavorited` flag on book responses, or a `GET /api/favorites/ids` endpoint,
+> would remove that. Also: `/api/search` can't filter server-side (refinement is
+> client-side on the top 50), and the genre filter is multi-select in the UI but
+> only the first genre reaches the backend.
 
 ## Internationalization
 
-Lightweight, dependency-free EN/PT support (`src/i18n/`). English is the
-default; a language toggle lives in the nav. Missing keys fall back to English,
-then to the raw key.
+Lightweight, dependency-free EN/PT support (`src/i18n/`, 242 keys each, kept at
+parity). English is the default; a language toggle lives in the nav. Missing keys
+fall back to English, then to the raw key.
 
 ## Roadmap
 
 - **Phase 1 (done):** scaffold, design system, API layer.
-- **Phase 2 (this):** US01–US04 — search, catalog list + filters, book detail,
-  all against the live API (no more sample data).
-- **Phase 3:** US05–US11 — recommendations, auth, favorites.
+- **Phase 2 (done):** US01–US04 — search, catalog + filters, book detail.
+- **Phase 3 (this):** US05–US11 — auth, favorites, recommendations.
 - **Phase 4 (optional):** refresh-token → HttpOnly cookie + CSRF (backend + frontend).
-
-## Routes & data (Phase 2)
-
-| Route        | Screen                | Endpoint                               |
-| :----------- | :-------------------- | :------------------------------------- |
-| `/`          | Home                  | `GET /api/books?genre=` (one per shelf) + a live `GET /api/search` preview |
-| `/search?q=` | Search results (US01) | `GET /api/search?q=&limit=`            |
-| `/books`     | Catalog (US02/US03)   | `GET /api/books` (infinite scroll)     |
-| `/books/:id` | Book detail (US04)    | `GET /api/books/{id}`                  |
-
-Notes:
-
-- **Infinite scroll** via `useInfiniteQuery` + an IntersectionObserver sentinel.
-- **Filters live in the URL** (`?q=&author=&genre=&genre=&sort=`) so the catalog
-  is shareable and works with back/forward.
-- **Genre filter is multi-select in the UI**, but the backend currently accepts a
-  single `genre`, so only the first is sent (see `toBookParams` in `api/books.ts`).
-  A backend change to accept multiple genres is tracked; revisit when backend
-  work resumes.
-- Opening `/books/:id` makes the backend emit a `viewed` interaction event — no
-  frontend action needed.

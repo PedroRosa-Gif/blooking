@@ -29,12 +29,14 @@ export function EmptyState({
   title,
   body,
   icon,
+  action,
 }: {
   title: string;
   body?: string;
   icon?: ReactNode;
+  action?: ReactNode;
 }) {
-  return <Shell icon={icon} title={title} body={body} />;
+  return <Shell icon={icon} title={title} body={body} action={action} />;
 }
 
 export function ErrorState({ error, onRetry }: { error: unknown; onRetry?: () => void }) {
