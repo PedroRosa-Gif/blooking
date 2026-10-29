@@ -72,6 +72,16 @@ blooking:
     # Cron for the scheduled refresh-token cleanup (expired + stale-revoked rows).
     # Default: every day at 03:00 server time.
     refresh-cleanup-cron: ${AUTH_REFRESH_CLEANUP_CRON:0 0 3 * * *}
+    refresh-cookie:
+      # The refresh token is delivered as an HttpOnly cookie (invisible to JS).
+      name: ${AUTH_REFRESH_COOKIE_NAME:refresh_token}
+      path: ${AUTH_REFRESH_COOKIE_PATH:/api/auth}
+      # Secure MUST be true in production (HTTPS). Default false here so the
+      # cookie works for local dev over plain HTTP; override via env in prod.
+      secure: ${AUTH_REFRESH_COOKIE_SECURE:false}
+      # Lax works when the SPA and API are same-site. For a cross-site prod
+      # deployment use None (which the browser only accepts with secure=true).
+      same-site: ${AUTH_REFRESH_COOKIE_SAME_SITE:Lax}
     rate-limit:
       # Brute-force protection for /api/auth/login and /api/auth/register:
       # at most `max-attempts` requests per `window` per client IP, else 429.
