@@ -122,14 +122,15 @@ export interface LoginRequest {
   password: string;
 }
 
-export interface RefreshRequest {
-  refreshToken: string;
-}
-
-/** Returned by register / login / refresh. `tokenType` is always "Bearer". */
+/**
+ * Returned by register / login / refresh. `tokenType` is always "Bearer".
+ *
+ * The refresh token is NOT here — the backend delivers it as an `HttpOnly`
+ * cookie (invisible to JS), sent automatically on auth requests because the
+ * axios client uses `withCredentials`.
+ */
 export interface AuthResponse {
   accessToken: string;
-  refreshToken: string;
   tokenType: string;
   expiresInSeconds: number;
 }
