@@ -104,8 +104,6 @@ const en: Dict = {
   'why.tile3.title': 'Learns your taste',
   'why.tile3.body':
     'Every favorite sharpens your recommendations, and new readers start with the most popular titles.',
-  'why.tile4.title': 'Runs where you do',
-  'why.tile4.body': 'One command starts the database, the message broker and the embedding model.',
 
   'cta.title': 'Your reading nights, organized',
   'cta.body': 'Create a free account to save favorites and unlock recommendations.',
@@ -388,9 +386,6 @@ const pt: Dict = {
   'why.tile3.title': 'Aprende seu gosto',
   'why.tile3.body':
     'Cada favorito afina suas recomendações, e quem está começando vê primeiro os títulos mais populares.',
-  'why.tile4.title': 'Roda onde você roda',
-  'why.tile4.body':
-    'Um comando sobe o banco de dados, o broker de mensagens e o modelo de embeddings.',
 
   'cta.title': 'Suas noites de leitura, organizadas',
   'cta.body': 'Crie uma conta gratuita para salvar favoritos e liberar recomendações.',

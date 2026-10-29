@@ -246,25 +246,13 @@ export function HomePage() {
           </Reveal>
 
           {/* Tile 3: learns your taste */}
-          <Reveal className="md:col-span-2">
+          <Reveal className="md:col-span-6">
             <Card className="flex h-full flex-col gap-4">
               <span className={iconBadge}>
                 <HeartIcon size={20} />
               </span>
               <h3 className="text-lead font-semibold text-fg">{t('why.tile3.title')}</h3>
-              <p className="text-body-sm text-fg-muted">{t('why.tile3.body')}</p>
-            </Card>
-          </Reveal>
-
-          {/* Tile 4: one command */}
-          <Reveal delay={90} className="md:col-span-4">
-            <Card className="flex h-full flex-col gap-4">
-              <h3 className="text-lead font-semibold text-fg">{t('why.tile4.title')}</h3>
-              <p className="max-w-xl text-body-sm text-fg-muted">{t('why.tile4.body')}</p>
-              <div className="mt-auto rounded-xl border border-line bg-nav/60 px-4 py-3 font-mono text-body-sm text-fg-muted">
-                <span className="select-none text-fg-subtle">$ </span>
-                docker compose up -d
-              </div>
+              <p className="max-w-xl text-body-sm text-fg-muted">{t('why.tile3.body')}</p>
             </Card>
           </Reveal>
         </div>
