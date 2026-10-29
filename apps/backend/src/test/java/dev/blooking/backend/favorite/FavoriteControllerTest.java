@@ -3,6 +3,7 @@ package dev.blooking.backend.favorite;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.authentication;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -47,7 +48,7 @@ class FavoriteControllerTest {
 
     @Test
     void favorite_returns201_andDelegatesWithUserIdFromToken() throws Exception {
-        mockMvc.perform(post("/api/favorites/42").with(authentication(asUser(7L))))
+        mockMvc.perform(post("/api/favorites/42").with(authentication(asUser(7L))).with(csrf()))
                 .andExpect(status().isCreated());
 
         verify(favoriteService).favorite(eq(7L), eq(42L));
@@ -55,7 +56,7 @@ class FavoriteControllerTest {
 
     @Test
     void unfavorite_returns204() throws Exception {
-        mockMvc.perform(delete("/api/favorites/42").with(authentication(asUser(7L))))
+        mockMvc.perform(delete("/api/favorites/42").with(authentication(asUser(7L))).with(csrf()))
                 .andExpect(status().isNoContent());
 
         verify(favoriteService).unfavorite(eq(7L), eq(42L));
