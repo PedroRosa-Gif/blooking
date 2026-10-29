@@ -22,16 +22,12 @@ Search by *meaning*, not just keywords — in English **or** Portuguese — over
 
 ---
 
-## Why this isn't a CRUD app
+## How it works
 
-Blooking is built around a few deliberate engineering decisions, not just forms over a database:
-
-- **🔍 Hybrid search with Reciprocal Rank Fusion (RRF).** Every query runs two retrievers in parallel — **semantic** (vector similarity over `pgvector`) and **keyword** (PostgreSQL full-text search) — and the two ranked lists are fused with RRF (`k = 60`), so results combine conceptual relevance with exact-term matching without hand-tuned score normalization.
-- **🌐 Multilingual semantic search.** Queries in **English or Portuguese** are embedded with the multilingual `bge-m3` model (1024-dim vectors via Ollama / Spring AI) and matched against the same catalog — no translation step.
-- **⚡ Event-driven recommendations.** User interactions (`viewed` / `searched` / `favorited` / `unfavorited`) are published to **RabbitMQ**; an asynchronous worker consumes them, maintains an append-only audit log, and recomputes each user's **preference embedding** (a weighted centroid of the books they engaged with) to serve personalized results.
-- **🛟 Degrades gracefully.** If the embedding backend is unavailable at query time, search automatically falls back to keyword-only instead of failing.
-- **🧊 Never an empty state.** Users with no history yet get a popularity-based cold-start fallback for recommendations.
-- **🔐 Real auth, hardened.** Stateless JWT access tokens + revocable refresh tokens delivered as an `HttpOnly` cookie, CSRF double-submit protection, BCrypt password hashing, and per-IP rate limiting on the auth endpoints.
+- **🔍 Hybrid search with Reciprocal Rank Fusion (RRF).** Every query runs two retrievers in parallel — **semantic** (vector similarity over `pgvector`) and **keyword** (PostgreSQL full-text search) — and the two ranked lists are fused with RRF (`k = 60`), combining conceptual relevance with exact-term matching without hand-tuned score normalization.
+- **🌐 Multilingual semantic search.** Queries in **English or Portuguese** are embedded with the multilingual `bge-m3` model (1024-dim vectors via Ollama / Spring AI) and matched against the same catalog — no translation step. If the embedding backend is unavailable, search falls back to keyword-only.
+- **⚡ Event-driven recommendations.** User interactions (`viewed` / `searched` / `favorited` / `unfavorited`) are published to **RabbitMQ**; an asynchronous worker consumes them, maintains an append-only audit log, and recomputes each user's **preference embedding** (a weighted centroid of the books they engaged with) to serve personalized results. Users with no history yet get a popularity-based cold-start fallback.
+- **🔐 Stateless, hardened auth.** JWT access tokens + revocable refresh tokens delivered as an `HttpOnly` cookie, CSRF double-submit protection, BCrypt password hashing, and per-IP rate limiting on the auth endpoints.
 - **🧱 Reliable messaging.** Durable queues, a dead-letter queue for poison messages, and idempotent consumers (each event carries a unique `eventId`) make delivery at-least-once and safe to retry.
 
 ## Architecture
