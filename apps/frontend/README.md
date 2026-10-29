@@ -1,14 +1,13 @@
 # Blooking — Frontend
-# Blooking — Frontend
 
 Web UI for book discovery, hybrid search and personalized recommendations.
 Talks to the [Blooking backend](../backend) REST API.
 
-> **Status:** Phase 3 — **accounts**. All user stories (US01–US11) run against
+> **Status:** Phase 4 — **complete**. All user stories (US01–US11) run against
 > the live backend: search, catalog and book detail, plus register/login/logout,
 > favorites and personalized recommendations. The backend must be running for
-> data to appear. Remaining follow-up: the refresh-token → HttpOnly cookie + CSRF
-> migration (Phase 4).
+> data to appear. The refresh-token → HttpOnly cookie + CSRF migration is done
+> (the refresh token is no longer kept in the browser).
 
 ## Tech Stack
 
@@ -151,7 +150,10 @@ UI relies on:
   envelope (`content`, `totalElements`, `totalPages`, `number` is **0-based**, …).
 - `GET /api/search` and `GET /api/recommendations` return a **bare array** of
   `BookSummary`, not a `Page`.
-- Auth returns `{ accessToken, refreshToken, tokenType: "Bearer", expiresInSeconds }`.
+- Auth returns `{ accessToken, tokenType: "Bearer", expiresInSeconds }` in the
+  body; the **refresh token is set as an `HttpOnly` cookie**, not returned in the
+  body. The server also sets a JS-readable `XSRF-TOKEN` cookie whose value must
+  be echoed in the `X-XSRF-TOKEN` header on mutating requests (CSRF).
 - Errors may arrive in three shapes (custom `{ timestamp, status, error, message }`,
   an empty 401 body from the security layer, or Spring's default body);
   `lib/apiError.ts` normalizes all three.
@@ -227,15 +229,17 @@ rewriting it:
 ## Authentication & account (Phase 3)
 
 Real auth now (US06–US08): `AuthContext` calls `/api/auth/*`, keeps the access
-token in memory and the refresh token in `localStorage`, and on load restores a
-session from a stored refresh token (a spinner guards protected routes until that
-resolves). Login/register redirect back to a validated `?from=` (open redirects
-rejected). The nav shows Login/Sign up when signed out and a user menu
-(Favorites, For you, Log out) when signed in.
+token in memory only, and on load restores a session via the `HttpOnly` refresh
+cookie (a spinner guards protected routes until that resolves). Login/register
+redirect back to a validated `?from=` (open redirects rejected). The nav shows
+Login/Sign up when signed out and a user menu (Favorites, For you, Log out) when
+signed in.
 
-- **Token transport is still body-based**, isolated in `tokenStore.ts`. The
-  move to an HttpOnly + Secure + SameSite cookie + CSRF is the Phase 4 follow-up
-  (agreed phased approach); the Axios client already sends `withCredentials`.
+- **Token transport is cookie-based for the refresh token** (`HttpOnly` +
+  `Secure` + `SameSite` cookie, set by the backend and invisible to JS); only
+  the short-lived access token is held in memory. The Axios client sends
+  `withCredentials` and echoes the `XSRF-TOKEN` cookie in the `X-XSRF-TOKEN`
+  header on mutating requests (CSRF double-submit).
 - **401 → single-flight refresh.** A 401 on a protected call triggers one
   `/api/auth/refresh`; concurrent 401s share that single refresh (the backend
   rotates the refresh token, so parallel refreshes would invalidate each other),
@@ -269,5 +273,5 @@ fall back to English, then to the raw key.
 
 - **Phase 1 (done):** scaffold, design system, API layer.
 - **Phase 2 (done):** US01–US04 — search, catalog + filters, book detail.
-- **Phase 3 (this):** US05–US11 — auth, favorites, recommendations.
-- **Phase 4 (optional):** refresh-token → HttpOnly cookie + CSRF (backend + frontend).
+- **Phase 3 (done):** US05–US11 — auth, favorites, recommendations.
+- **Phase 4 (done):** refresh-token → HttpOnly cookie + CSRF (backend + frontend).

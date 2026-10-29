@@ -323,16 +323,27 @@ See the repository docs for the full convention; the short version:
 apps/backend/
 ├── pom.xml
 ├── mvnw / mvnw.cmd / .mvn/
+├── scripts/                      # dataset extraction (Kaggle → books_sample.csv)
 └── src/
     ├── main/
     │   ├── java/dev/blooking/backend/
     │   │   ├── BackendApplication.java
-    │   │   └── common/web/HealthController.java
+    │   │   ├── auth/             # JWT auth, refresh tokens, rate limiting, CSRF
+    │   │   │   ├── config/       # SecurityConfig, rate-limit + cookie properties
+    │   │   │   ├── dto/          # Login/Register requests, Auth/User responses
+    │   │   │   └── jwt/          # JwtService, filter, properties
+    │   │   ├── book/             # catalog, hybrid search, DTOs, ingest/BookSeeder
+    │   │   │   ├── dto/
+    │   │   │   └── ingest/
+    │   │   └── common/           # exceptions, @CurrentUser, web/HealthController
     │   └── resources/
     │       ├── application.yml
-    │       └── db/migration/
-    │           └── V1__enable_extensions.sql
+    │       ├── data/books_sample.csv    # ~3,000 seeded books
+    │       └── db/migration/            # Flyway V1..Vn (extensions → profiles)
     └── test/
-        └── java/dev/blooking/backend/
-            └── BackendApplicationTests.java
+        └── java/dev/blooking/backend/   # *Test (unit/web) + *IT (Testcontainers)
 ```
+
+> The tree above is indicative; the favorites, interaction-events and
+> recommendation code live alongside `book/` and `auth/`. Browse the source for
+> the full picture.
