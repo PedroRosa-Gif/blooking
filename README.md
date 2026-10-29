@@ -23,14 +23,39 @@ This project is built as a **monorepo** containing both the frontend and backend
 
 > *Check the `README.md` inside each application folder under `apps/` for detailed setup and usage instructions.*
 
-<!-- ## Quick Start
+## Quick Start
 
 ### Prerequisites
-* [Docker Desktop](https://www.docker.com/) installed and running
-* [Java 21](https://adoptium.net/) & [Node.js (v18+)](https://nodejs.org/)
+* [Docker Desktop](https://www.docker.com/) installed and running (for Postgres + pgvector, RabbitMQ and Ollama)
+* [Java 21](https://adoptium.net/) & [Node.js 20+](https://nodejs.org/)
 
 ### Running the App
-1. Clone the repository and navigate to the root folder:
+
+1. **Clone the repository and start the infrastructure** (Postgres + pgvector, RabbitMQ, Ollama):
    ```bash
-   git clone [https://github.com/your-username/blooking.git](https://github.com/your-username/blooking.git)
-   cd blooking -->
+   git clone https://github.com/PedroRosa-Gif/blooking.git
+   cd blooking
+   cp .env.example .env        # adjust values if needed
+   docker compose up -d
+   ```
+
+2. **Run the backend** (from `apps/backend`):
+   ```bash
+   cd apps/backend
+   ./mvnw spring-boot:run       # starts on http://localhost:8080
+   ```
+   > ⚠️ The first startup seeds ~3,000 books and generates an embedding for each
+   > via Ollama (`bge-m3`), which can take several minutes. It runs once and is
+   > idempotent on restart. See [`apps/backend/README.md`](./apps/backend/README.md).
+
+3. **Run the frontend** (from `apps/frontend`, in a second terminal):
+   ```bash
+   cd apps/frontend
+   cp .env.example .env         # defaults to the backend on :8080
+   npm install
+   npm run dev                  # http://localhost:5173
+   ```
+
+Open **http://localhost:5173** to use the app. For details (environment
+variables, endpoints, auth, tests) see the per-app READMEs linked in the table
+above.

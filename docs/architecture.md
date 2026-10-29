@@ -150,12 +150,18 @@ The profile embedding is a **weighted centroid** of the embeddings of the books 
   * Passwords hashed with **BCrypt**.
 * **Public vs. protected:** book discovery (`/api/books/**`, `/api/search`) and the
   auth entry points are public; everything else requires a valid access token.
-* **API Security:** CORS restricted to the configured frontend origin; CSRF disabled
-  (token-based, not cookie-based — to be revisited when refresh tokens move to an
-  HttpOnly cookie); rate limiting on auth/search endpoints is a planned hardening step.
+* **API Security:** CORS restricted to the configured frontend origin.
+  **CSRF protection is enabled** (double-submit cookie: a JS-readable `XSRF-TOKEN`
+  cookie whose value must be echoed in the `X-XSRF-TOKEN` header on mutating
+  requests), since an ambient cookie now authenticates `refresh`/`logout`.
+  **Rate limiting** on `/api/auth/login` and `/api/auth/register` is implemented
+  (per-IP fixed-window filter, default 5 attempts/minute → `429`).
 * **Gated actions:** favoriting/unfavoriting books requires an authenticated user.
 
-> **Token transport evolution:** currently both tokens travel in the JSON body /
-> `Authorization` header (clean, frontend-agnostic). Once the React frontend
-> exists, the refresh token will move to an `HttpOnly`/`Secure`/`SameSite` cookie
-> to protect it from XSS theft, with CSRF protection added accordingly.
+> **Token transport:** the short-lived access token travels in the JSON body and
+> the `Authorization: Bearer` header. The refresh token is delivered as an
+> **`HttpOnly`/`Secure`/`SameSite` cookie** (invisible to JavaScript, so an XSS
+> cannot steal it); `refresh` and `logout` read it from the cookie. CSRF
+> protection was added accordingly (see *API Security* above). A cross-site
+> production deployment (frontend and API on different domains) requires
+> `SameSite=None` together with `Secure=true`.
