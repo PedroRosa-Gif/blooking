@@ -271,7 +271,7 @@ fall back to English, then to the raw key.
 
 ## Roadmap
 
-- **Phase 1 (done):** scaffold, design system, API layer.
-- **Phase 2 (done):** US01–US04 — search, catalog + filters, book detail.
-- **Phase 3 (done):** US05–US11 — auth, favorites, recommendations.
-- **Phase 4 (done):** refresh-token → HttpOnly cookie + CSRF (backend + frontend).
+- **Phase 1:** scaffold, design system, API layer.
+- **Phase 2:** US01–US04 — search, catalog + filters, book detail.
+- **Phase 3:** US05–US11 — auth, favorites, recommendations.
+- **Phase 4:** refresh-token → HttpOnly cookie + CSRF (backend + frontend).
