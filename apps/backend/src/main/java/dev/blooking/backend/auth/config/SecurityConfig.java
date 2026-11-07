@@ -44,6 +44,9 @@ import org.springframework.http.HttpStatus;
 @ConditionalOnWebApplication(type = ConditionalOnWebApplication.Type.SERVLET)
 public class SecurityConfig {
 
+    /** Default dev frontend origin, used when no allow-list is configured. */
+    private static final String DEFAULT_ALLOWED_ORIGIN = "http://localhost:5173";
+
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
     private final AuthRateLimitFilter authRateLimitFilter;
 
@@ -118,10 +121,28 @@ public class SecurityConfig {
         return registration;
     }
 
+    /**
+     * Resolves the CORS allow-list, defending against a <b>blank</b>
+     * {@code CORS_ALLOWED_ORIGINS} value. Spring's {@code ${VAR:default}} only
+     * falls back to the default when the variable is ABSENT — an empty
+     * environment variable (e.g. an empty line in {@code .env}) is bound as an
+     * empty/blank list, which would leave the allow-list empty and make the
+     * browser block every cross-origin request (403 on preflight). Blank entries
+     * are dropped; if nothing usable remains, fall back to the dev default.
+     */
+    private List<String> resolveAllowedOrigins() {
+        List<String> origins = allowedOrigins == null ? List.of()
+                : allowedOrigins.stream()
+                        .filter(o -> o != null && !o.isBlank())
+                        .map(String::trim)
+                        .toList();
+        return origins.isEmpty() ? List.of(DEFAULT_ALLOWED_ORIGIN) : origins;
+    }
+
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
-        config.setAllowedOrigins(allowedOrigins);
+        config.setAllowedOrigins(resolveAllowedOrigins());
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         // X-XSRF-TOKEN carries the CSRF token the SPA reads from the XSRF-TOKEN
         // cookie and echoes back on mutating requests.
