@@ -19,4 +19,23 @@ public record JwtProperties(
         long refreshExpirationMs,
         String issuer
 ) {
+
+    /**
+     * Insecure development fallback used only when no secret is configured.
+     * MUST be overridden via {@code JWT_SECRET} in any real environment. At
+     * least 32 bytes (256 bits), as required by HS256.
+     */
+    private static final String DEV_FALLBACK_SECRET =
+            "dev-only-insecure-secret-change-me-min-32-bytes!!";
+
+    public JwtProperties {
+        // A blank secret can happen when JWT_SECRET is *defined but empty* in the
+        // environment (e.g. an empty line in .env): the `${JWT_SECRET:default}`
+        // placeholder only falls back to the default when the var is ABSENT, not
+        // when it is empty. Treat blank as absent so the app still starts in dev
+        // instead of failing with an NPE while building the signing key.
+        if (secret == null || secret.isBlank()) {
+            secret = DEV_FALLBACK_SECRET;
+        }
+    }
 }
